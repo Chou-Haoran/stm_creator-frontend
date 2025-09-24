@@ -10,7 +10,7 @@ export default defineConfig({
         target: "http://localhost:3000",        // 同机开发；不同电脑换成对方IP
         changeOrigin: true,
         secure: false,
-        rewrite: (p) => p.replace(/^\/api/, ""), // ← 必须：后端本身没有 /api
+        rewrite: (p) => p.replace(/^\/api/, ""),
       },
     },
   },
