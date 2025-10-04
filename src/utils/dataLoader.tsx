@@ -1,5 +1,5 @@
 
-import { BMRGData, TransitionData } from './stateTransitionUtils';
+import { BMRGData, TransitionData } from './stateTransition';
 
 /**
  * Loads BMRG data from the JSON file

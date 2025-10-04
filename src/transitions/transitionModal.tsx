@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TransitionData } from '../utils/stateTransitionUtils';
+import { TransitionData } from '../utils/stateTransition';
 import './transitionModal.css';
 
 interface TransitionModalProps {
