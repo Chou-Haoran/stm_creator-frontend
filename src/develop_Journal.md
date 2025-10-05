@@ -1,7 +1,7 @@
 ---
 title: "Dev Log — Graph Editor Refactor"
-date: "2025-10-05"
-author: "Eli"
+date: "2025-10-04"
+author: "Haoran Zhou"
 ---
 
 ## Summary
