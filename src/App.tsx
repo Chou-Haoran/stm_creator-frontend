@@ -7,6 +7,7 @@ import {
     ReactFlow,
     ReactFlowProvider,
 } from '@xyflow/react';
+import { useState } from 'react';
 
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
@@ -19,11 +20,13 @@ import { ErrorState } from './app/components/ErrorState';
 import { LoadingState } from './app/components/LoadingState';
 import { TipsPanel } from './app/components/TipsPanel';
 import { VersionManagerModal } from './app/components/VersionManagerModal';
+import { HelpModal } from './app/components/HelpModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
 
 function App() {
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
     const {
         nodesWithCallbacks,
         edges,
@@ -98,6 +101,7 @@ function App() {
                 showSelfTransitions={showSelfTransitions}
                 deltaFilter={deltaFilter}
                 bmrgData={bmrgData}
+                onOpenHelp={() => setIsHelpOpen(true)}
             />
 
             <ReactFlow
@@ -161,6 +165,11 @@ function App() {
                 onClose={closeVersionManager}
                 onRestore={restoreVersion}
                 onDelete={deleteVersion}
+            />
+
+            <HelpModal
+                isOpen={isHelpOpen}
+                onClose={() => setIsHelpOpen(false)}
             />
         </div>
     );

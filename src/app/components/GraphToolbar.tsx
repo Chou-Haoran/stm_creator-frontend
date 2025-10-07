@@ -5,22 +5,23 @@ import { BMRGData } from '../../utils/stateTransition';
 import { DeltaFilterOption } from '../types';
 
 interface GraphToolbarProps {
-    onAddNode: () => void;
-    onToggleEdgeCreation: () => void;
-    onLoadEdges: () => void;
-    onSaveModel: () => void | Promise<void>;
-    onSaveVersion: () => void;
-    onOpenVersionManager: () => void;
-    onImportEKS: (file: File) => void | Promise<void>;
-    onExportEKS: () => void;
-    onRelayout: () => void;
-    onToggleSelfTransitions: () => void;
-    onDeltaFilterChange: (option: DeltaFilterOption) => void;
-    edgeCreationMode: boolean;
-    isSaving: boolean;
-    showSelfTransitions: boolean;
-    deltaFilter: DeltaFilterOption;
-    bmrgData: BMRGData | null;
+    readonly onAddNode: () => void;
+    readonly onToggleEdgeCreation: () => void;
+    readonly onLoadEdges: () => void;
+    readonly onSaveModel: () => void | Promise<void>;
+    readonly onSaveVersion: () => void;
+    readonly onOpenVersionManager: () => void;
+    readonly onImportEKS: (file: File) => void | Promise<void>;
+    readonly onExportEKS: () => void;
+    readonly onRelayout: () => void;
+    readonly onToggleSelfTransitions: () => void;
+    readonly onDeltaFilterChange: (option: DeltaFilterOption) => void;
+    readonly edgeCreationMode: boolean;
+    readonly isSaving: boolean;
+    readonly showSelfTransitions: boolean;
+    readonly deltaFilter: DeltaFilterOption;
+    readonly bmrgData: BMRGData | null;
+    readonly onOpenHelp: () => void;
 }
 
 export function GraphToolbar({
@@ -40,6 +41,7 @@ export function GraphToolbar({
     showSelfTransitions,
     deltaFilter,
     bmrgData,
+    onOpenHelp,
 }: GraphToolbarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +101,10 @@ export function GraphToolbar({
 
             <button onClick={onOpenVersionManager} className="button button-secondary">
                 🗂 Versions
+            </button>
+
+            <button onClick={onOpenHelp} className="button button-secondary">
+                ❓ Help
             </button>
 
             <button onClick={handleImportClick} className="button button-secondary">
