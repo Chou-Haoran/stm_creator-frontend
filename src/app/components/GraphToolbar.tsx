@@ -1,4 +1,6 @@
 
+import { useRef } from 'react';
+
 import { BMRGData } from '../../utils/stateTransition';
 import { DeltaFilterOption } from '../types';
 
@@ -9,6 +11,8 @@ interface GraphToolbarProps {
     onSaveModel: () => void | Promise<void>;
     onSaveVersion: () => void;
     onOpenVersionManager: () => void;
+    onImportEKS: (file: File) => void | Promise<void>;
+    onExportEKS: () => void;
     onRelayout: () => void;
     onToggleSelfTransitions: () => void;
     onDeltaFilterChange: (option: DeltaFilterOption) => void;
@@ -27,6 +31,8 @@ export function GraphToolbar({
     onRelayout,
     onSaveVersion,
     onOpenVersionManager,
+    onImportEKS,
+    onExportEKS,
     onToggleSelfTransitions,
     onDeltaFilterChange,
     edgeCreationMode,
@@ -35,12 +41,35 @@ export function GraphToolbar({
     deltaFilter,
     bmrgData,
 }: GraphToolbarProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            onImportEKS(file);
+        }
+        // Reset so the same file can be selected again if needed
+        event.target.value = '';
+    };
+
     const plausibleTransitionCount = bmrgData
         ? bmrgData.transitions.filter((transition) => transition.time_25 === 1).length
         : 0;
 
     return (
         <div className="controls-toolbar">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
+
             <button onClick={onAddNode} className="button button-primary">
                 ➕ Add Node
             </button>
@@ -70,6 +99,14 @@ export function GraphToolbar({
 
             <button onClick={onOpenVersionManager} className="button button-secondary">
                 🗂 Versions
+            </button>
+
+            <button onClick={handleImportClick} className="button button-secondary">
+                📥 Import EKS
+            </button>
+
+            <button onClick={onExportEKS} className="button button-secondary">
+                📤 Export EKS
             </button>
 
             <button onClick={onRelayout} className="button button-secondary">
