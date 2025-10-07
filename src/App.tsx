@@ -18,6 +18,7 @@ import { EdgeCreationHint } from './app/components/EdgeCreationHint';
 import { ErrorState } from './app/components/ErrorState';
 import { LoadingState } from './app/components/LoadingState';
 import { TipsPanel } from './app/components/TipsPanel';
+import { VersionManagerModal } from './app/components/VersionManagerModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
@@ -43,6 +44,8 @@ function App() {
         initialNodeValues,
         currentTransition,
         stateNameMap,
+        versions,
+        isVersionModalOpen,
         onNodesChange,
         onConnect,
         onEdgeClick,
@@ -59,6 +62,11 @@ function App() {
         openAddNodeModal,
         closeNodeModal,
         closeTransitionModal,
+        saveCurrentVersion,
+        openVersionManager,
+        closeVersionManager,
+        restoreVersion,
+        deleteVersion,
     } = useGraphEditor();
 
     if (isLoading) {
@@ -76,6 +84,8 @@ function App() {
                 onToggleEdgeCreation={toggleEdgeCreationMode}
                 onLoadEdges={loadExistingEdges}
                 onSaveModel={handleSaveModel}
+                onSaveVersion={saveCurrentVersion}
+                onOpenVersionManager={openVersionManager}
                 onRelayout={handleReLayout}
                 onToggleSelfTransitions={toggleSelfTransitions}
                 onDeltaFilterChange={toggleDeltaFilter}
@@ -139,6 +149,14 @@ function App() {
                 onSave={handleSaveTransition}
                 transition={currentTransition}
                 stateNames={stateNameMap}
+            />
+
+            <VersionManagerModal
+                isOpen={isVersionModalOpen}
+                versions={versions}
+                onClose={closeVersionManager}
+                onRestore={restoreVersion}
+                onDelete={deleteVersion}
             />
         </div>
     );

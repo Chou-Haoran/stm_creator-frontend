@@ -12,6 +12,7 @@ import { createTransitionCreator, createEdgeHandlers } from './graphTransitions'
 import { createNodeHandlers } from './graphNodes';
 import { createFilterActions } from './graphFilters';
 import { createModelActions } from './graphModel';
+import { createVersionActions } from './graphVersions';
 
 export function useGraphEditor(): UseGraphEditorResult {
     const state = useGraphBaseState();
@@ -83,8 +84,21 @@ export function useGraphEditor(): UseGraphEditorResult {
         setData: state.setBmrgData,
     });
 
+    const versionActions = createVersionActions({
+        getData: () => state.bmrgData,
+        setData: state.setBmrgData,
+        setNodes: state.setNodes,
+        handleNodeLabelChange,
+        handleNodeClick: nodeHandlers.handleNodeClick,
+        rebuildEdges,
+        getVersions: () => state.versions,
+        setVersions: state.setVersions,
+        setIsVersionModalOpen: state.setIsVersionModalOpen,
+    });
+
     useEffect(() => {
         modelActions.initialise();
+        versionActions.initialise();
     }, []);
 
     const nodesWithCallbacks = state.nodes.map((node) => ({
@@ -140,6 +154,8 @@ export function useGraphEditor(): UseGraphEditorResult {
         initialNodeValues: state.initialNodeValues,
         currentTransition: state.currentTransition,
         stateNameMap,
+        versions: state.versions,
+        isVersionModalOpen: state.isVersionModalOpen,
         onNodesChange: state.onNodesChange,
         onConnect,
         onEdgeClick: edgeHandlers.onEdgeClick,
@@ -156,5 +172,10 @@ export function useGraphEditor(): UseGraphEditorResult {
         openAddNodeModal: nodeHandlers.openAddNodeModal,
         closeNodeModal: nodeHandlers.closeNodeModal,
         closeTransitionModal,
+        saveCurrentVersion: versionActions.saveCurrentVersion,
+        openVersionManager: versionActions.openVersionManager,
+        closeVersionManager: versionActions.closeVersionManager,
+        restoreVersion: versionActions.restoreVersion,
+        deleteVersion: versionActions.deleteVersion,
     };
 }
