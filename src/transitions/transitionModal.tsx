@@ -215,7 +215,7 @@ export function TransitionModal({ isOpen, onClose, onSave, transition, stateName
                 if (idx !== partIndex) return p;
                 // Avoid duplicates of exact same driver object
                 const exists = p.drivers.some(
-                    (d) => d.driver === driverToAdd.driver && d.driver_group === driverToAdd.driver_group,
+                    (d: Driver) => d.driver === driverToAdd.driver && d.driver_group === driverToAdd.driver_group,
                 );
                 const nextDrivers = exists ? p.drivers : [...p.drivers, driverToAdd];
                 return { ...p, drivers: nextDrivers } as ChainPart;
