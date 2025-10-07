@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { NodeProps, Handle, Position } from '@xyflow/react';
 import { CustomNodeData } from './types';
-import './CustomNode.css';
+import './customNode.css';
 
 interface CustomNodeProps extends NodeProps {
     data: CustomNodeData;
