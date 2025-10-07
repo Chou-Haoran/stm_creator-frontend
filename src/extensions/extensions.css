@@ -1,0 +1,97 @@
+
+.stm-ext-panel {
+  z-index: 20;
+}
+
+.stm-ext-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.06);
+  min-width: 280px;
+}
+
+.stm-ext-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.stm-ext-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+.stm-ext-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.stm-ext-field input[type="number"],
+.stm-ext-field select {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.stm-ext-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.stm-ext-btn {
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stm-ext-btn.primary {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+/* header with collapse button */
+.stm-ext-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stm-ext-btn.ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.stm-ext-btn.ghost:hover {
+  background: #f3f4f6;
+}
+
+/* fully disable interactions when no transition is selected */
+.stm-ext-card.is-disabled {
+  opacity: 0.85;
+}
+.stm-ext-card.is-disabled input,
+.stm-ext-card.is-disabled select,
+.stm-ext-card.is-disabled button.primary {
+  pointer-events: none;
+}
+
