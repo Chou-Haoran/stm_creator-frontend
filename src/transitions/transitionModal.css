@@ -232,6 +232,12 @@
     align-items: center;
 }
 
+.chain-part-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .chain-part-counter {
     background-color: #6c757d;
     color: white;
@@ -279,4 +285,42 @@
     font-size: 12px;
     margin-bottom: 3px;
     color: #212529;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.driver-name {
+    flex: 1;
+    padding-right: 8px;
+}
+
+.driver-delete {
+    border: none;
+    background: transparent;
+    color: #c62828;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.driver-delete:hover {
+    color: #8e0000;
+}
+
+.add-driver-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.add-driver-select {
+    height: 24px;
+    font-size: 12px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
 }
