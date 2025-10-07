@@ -5,15 +5,16 @@ export interface NodeAttributes {
     stateNumber: string;
     vastClass: string;
     condition: string;
+	imageUrl?: string;
     id?: string; // Optional for editing existing nodes
 }
 
 interface NodeModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (attributes: NodeAttributes) => void;
-    initialValues?: NodeAttributes;
-    isEditing: boolean;
+    readonly isOpen: boolean;
+    readonly onClose: () => void;
+    readonly onSave: (attributes: NodeAttributes) => void;
+    readonly initialValues?: NodeAttributes;
+    readonly isEditing: boolean;
 }
 
 // VAST classes from the JSON data
@@ -32,20 +33,40 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
         stateNumber: '',
         vastClass: '',
         condition: '',
+		imageUrl: '',
     });
 
+    // Local state for condition bounds displayed in the UI
+    const [lowerBound, setLowerBound] = useState<string>('');
+    const [upperBound, setUpperBound] = useState<string>('');
+
     // Update form when initialValues changes (when editing an existing node)
-    useEffect(() => {
+	useEffect(() => {
         if (initialValues) {
-            setAttributes(initialValues);
-        } else {
+			setAttributes(initialValues);
+
+            // Try to parse defaults from existing condition string like:
+            // "Condition range: 0.50 - 0.60"
+            const regex = /Condition\s*range:\s*([\d.+-]+)\s*-\s*([\d.+-]+)/i;
+            const match = regex.exec(initialValues.condition ?? '');
+            if (match) {
+                setLowerBound(match[1]);
+                setUpperBound(match[2]);
+            } else {
+                setLowerBound('');
+                setUpperBound('');
+            }
+		} else {
             // Reset form when opening for a new node
             setAttributes({
                 stateName: '',
                 stateNumber: '',
                 vastClass: '',
                 condition: '',
+				imageUrl: '',
             });
+            setLowerBound('');
+            setUpperBound('');
         }
     }, [initialValues, isOpen]);
 
@@ -57,9 +78,23 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(attributes);
+
+        const lower = parseFloat(lowerBound);
+        const upper = parseFloat(upperBound);
+        const hasNumbers = !Number.isNaN(lower) && !Number.isNaN(upper);
+        const isValid = hasNumbers && lower < upper;
+
+        if (!isValid) {
+            return; // Prevent submit if invalid
+        }
+
+        const formatted = `Condition range: ${lower.toFixed(2)} - ${upper.toFixed(2)}`;
+		onSave({
+			...attributes,
+			condition: formatted,
+		});
     };
 
     if (!isOpen) return null;
@@ -155,24 +190,92 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
                     </div>
 
                     <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', marginBottom: '5px' }}>
-                            Condition:
-                            <textarea
-                                name="condition"
-                                value={attributes.condition}
-                                onChange={handleChange}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ccc',
-                                    minHeight: '80px'
-                                }}
-                            />
-                        </label>
+                        <label htmlFor="condition-lower" style={{ display: 'block', marginBottom: '5px' }}>Condition Lower Bond:</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            name="conditionLower"
+                            id="condition-lower"
+                            value={lowerBound}
+                            onChange={(e) => setLowerBound(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid #ccc'
+                            }}
+                        />
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <div style={{ marginBottom: '15px' }}>
+                        <label htmlFor="condition-upper" style={{ display: 'block', marginBottom: '5px' }}>Condition Upper Bond:</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            name="conditionUpper"
+                            id="condition-upper"
+                            value={upperBound}
+                            onChange={(e) => setUpperBound(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid #ccc'
+                            }}
+                        />
+                    </div>
+
+                    {(() => {
+                        const l = parseFloat(lowerBound);
+                        const u = parseFloat(upperBound);
+                        if (Number.isNaN(l) || Number.isNaN(u)) {
+                            return null;
+                        }
+                        if (l >= u) {
+                            return (
+                                <div style={{ color: '#d9534f', marginBottom: '10px' }}>
+                                    Lower Bond must be less than Upper Bond.
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
+					{/* Image section at the bottom: show existing and allow upload */}
+					<div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
+						<div style={{ marginBottom: '8px', fontWeight: 600 }}>State Image</div>
+						{attributes.imageUrl ? (
+							<div style={{ marginBottom: '10px' }}>
+								<img
+									src={attributes.imageUrl}
+									alt="State preview"
+									style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', border: '1px solid #ddd', borderRadius: '4px' }}
+								/>
+							</div>
+						) : (
+							<div style={{ marginBottom: '10px', color: '#666' }}>No image set.</div>
+						)}
+						<label style={{ display: 'block' }}>
+							<span style={{ display: 'block', marginBottom: '6px' }}>Upload image:</span>
+							<input
+								type="file"
+								accept="image/*"
+								onChange={(e) => {
+									const file = e.target.files?.[0];
+									if (!file) return;
+									const reader = new FileReader();
+									reader.onload = () => {
+										const result = typeof reader.result === 'string' ? reader.result : '';
+										setAttributes(prev => ({ ...prev, imageUrl: result }));
+									};
+									reader.readAsDataURL(file);
+								}}
+								style={{ cursor: 'pointer' }}
+							/>
+						</label>
+					</div>
+
+					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                         <button
                             type="button"
                             onClick={onClose}
@@ -194,8 +297,13 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
                                 border: 'none',
                                 backgroundColor: '#007bff',
                                 color: 'white',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
                             }}
+                            disabled={(() => {
+                                const l = parseFloat(lowerBound);
+                                const u = parseFloat(upperBound);
+                                return Number.isNaN(l) || Number.isNaN(u) || l >= u;
+                            })()}
                         >
                             {isEditing ? 'Update' : 'Add'}
                         </button>
