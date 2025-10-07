@@ -64,6 +64,28 @@ New helper modules coordinated by `useGraphEditor.ts`:
 - `useGraphEditor` exposes a stable interface consumed by toolbar/panels; avoid reaching into submodules directly from views.
 - Keep render-only components stateless; route mutations through the hook.
 
+---
+
+## Entry — Model Version Management
+**Branch:** `feature/model-versioning`  
+**Status:** Merged
+
+### Summary
+Added client-side version snapshots so editors can save, view, restore, and delete STM states without a backend. Versions persist in `localStorage`, letting users safely experiment and roll back.
+
+### Goals
+- Provide an explicit “save point” workflow for the STM graph.
+- Persist versions locally across page reloads.
+- Keep import/export pathways untouched while wiring version state through existing hooks.
+
+### Key Changes
+- Created `GraphModelVersion` type and `utils/versionStorage.ts` helper to manage serialized snapshots in `localStorage`.
+- Extended `useGraphBaseState` / `useGraphEditor` with version state plus a new `graphVersions.ts` module for save/restore/delete actions.
+- Updated `GraphToolbar` and added `VersionManagerModal` so users can trigger saves and manage timestamps within the UI.
+
+### Notes
+- History is capped at 50 versions to avoid unbounded storage; tweak the constant in `versionStorage` if requirements change.
+- Restoring a version rebuilds nodes and edges via existing utilities, ensuring downstream components stay synchronized.
 
 
 
