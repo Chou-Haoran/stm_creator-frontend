@@ -6,6 +6,7 @@ export interface NodeAttributes {
     vastClass: string;
     condition: string;
 	imageUrl?: string;
+    note?: string;
     id?: string; // Optional for editing existing nodes
 }
 
@@ -34,6 +35,7 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
         vastClass: '',
         condition: '',
 		imageUrl: '',
+        note: '',
     });
 
     // Local state for condition bounds displayed in the UI
@@ -64,6 +66,7 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
                 vastClass: '',
                 condition: '',
 				imageUrl: '',
+                note: '',
             });
             setLowerBound('');
             setUpperBound('');
@@ -242,7 +245,19 @@ export function NodeModal({ isOpen, onClose, onSave, initialValues, isEditing }:
                     })()}
 
 					{/* Image section at the bottom: show existing and allow upload */}
-					<div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
+				{/* Note input placed above State Image */}
+				<div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
+					<div style={{ marginBottom: '8px', fontWeight: 600 }}>Note</div>
+					<textarea
+						name="note"
+						placeholder="Add a brief note about this state"
+						value={attributes.note ?? ''}
+						onChange={handleChange}
+						style={{ width: '100%', minHeight: '64px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical' }}
+					/>
+				</div>
+
+				<div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
 						<div style={{ marginBottom: '8px', fontWeight: 600 }}>State Image</div>
 						{attributes.imageUrl ? (
 							<div style={{ marginBottom: '10px' }}>

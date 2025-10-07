@@ -18,6 +18,7 @@ function stateToNodeAttributes(state: StateData): NodeAttributes {
         vastClass: state.vast_state.vast_class,
         condition: getConditionString(state),
         imageUrl: state.attributes?.imageUrl ?? '',
+        note: state.attributes?.note ?? '',
     };
 }
 

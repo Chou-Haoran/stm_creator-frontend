@@ -45,6 +45,7 @@ export function deriveModalValues(node: AppNode): NodeAttributes {
         vastClass: node.data.attributes?.vastClass ?? '',
         condition: node.data.attributes?.condition ?? '',
         imageUrl: node.data.attributes?.imageUrl ?? '',
+        note: node.data.attributes?.note ?? '',
         id: node.id,
     };
 }
@@ -66,6 +67,7 @@ export function applyNodeAttributes(nodes: AppNode[], nodeId: string, attributes
                     vastClass: attributes.vastClass,
                     condition: attributes.condition,
                     imageUrl: attributes.imageUrl,
+                    note: attributes.note,
                 },
             },
         } as AppNode;
@@ -87,6 +89,7 @@ export function createCustomNode(
             vastClass: attributes.vastClass,
             condition: attributes.condition,
             imageUrl: attributes.imageUrl,
+            note: attributes.note,
         },
     };
 
@@ -114,6 +117,7 @@ export function updateBmrgStateName(
         const nextAttributes = {
             ...(state.attributes ?? {}),
             ...(attributes.imageUrl !== undefined ? { imageUrl: attributes.imageUrl } : {}),
+            ...(attributes.note !== undefined ? { note: attributes.note } : {}),
         };
 
         return {
