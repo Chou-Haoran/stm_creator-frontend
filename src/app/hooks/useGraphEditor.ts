@@ -4,7 +4,7 @@ import { addEdge, Connection, OnConnect } from '@xyflow/react';
 
 import { DEFAULT_EDGE_OPTIONS, EXTENDED_EDGE_TYPES, EXTENDED_NODE_TYPES } from './graphConstants';
 import { UseGraphEditorResult } from './useGraphEditor.types';
-import { TransitionData } from '../../utils/stateTransition';
+import { TransitionData, statesToNodes } from '../../utils/stateTransition';
 import { useGraphBaseState } from './useGraphBaseState';
 import { buildStateNameMap, updateNodeLabel } from './graphMutations';
 import { createRebuildEdges } from './graphRebuilder';
@@ -12,6 +12,7 @@ import { createTransitionCreator, createEdgeHandlers } from './graphTransitions'
 import { createNodeHandlers } from './graphNodes';
 import { createFilterActions } from './graphFilters';
 import { createModelActions } from './graphModel';
+import { createImportExportActions } from './graphImportExport';
 import { createVersionActions } from './graphVersions';
 
 export function useGraphEditor(): UseGraphEditorResult {
@@ -96,6 +97,16 @@ export function useGraphEditor(): UseGraphEditorResult {
         setIsVersionModalOpen: state.setIsVersionModalOpen,
     });
 
+    const importExportActions = createImportExportActions({
+        getData: () => state.bmrgData,
+        setData: state.setBmrgData,
+        setNodes: state.setNodes,
+        rebuildEdges,
+        handleNodeLabelChange,
+        handleNodeClick: nodeHandlers.handleNodeClick,
+        statesToNodes,
+    });
+
     useEffect(() => {
         modelActions.initialise();
         versionActions.initialise();
@@ -177,5 +188,7 @@ export function useGraphEditor(): UseGraphEditorResult {
         closeVersionManager: versionActions.closeVersionManager,
         restoreVersion: versionActions.restoreVersion,
         deleteVersion: versionActions.deleteVersion,
+        exportToEKS: importExportActions.exportToEKS,
+        importFromEKS: importExportActions.importFromEKS,
     };
 }

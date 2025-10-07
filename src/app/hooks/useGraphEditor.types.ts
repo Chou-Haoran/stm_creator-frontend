@@ -57,4 +57,6 @@ export interface UseGraphEditorResult {
     closeVersionManager: () => void;
     restoreVersion: (id: string) => void;
     deleteVersion: (id: string) => void;
+    exportToEKS: () => void;
+    importFromEKS: (file: File) => Promise<void>;
 }

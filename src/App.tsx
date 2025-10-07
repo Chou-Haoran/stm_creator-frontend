@@ -67,6 +67,8 @@ function App() {
         closeVersionManager,
         restoreVersion,
         deleteVersion,
+        exportToEKS,
+        importFromEKS,
     } = useGraphEditor();
 
     if (isLoading) {
@@ -86,6 +88,8 @@ function App() {
                 onSaveModel={handleSaveModel}
                 onSaveVersion={saveCurrentVersion}
                 onOpenVersionManager={openVersionManager}
+                onImportEKS={importFromEKS}
+                onExportEKS={exportToEKS}
                 onRelayout={handleReLayout}
                 onToggleSelfTransitions={toggleSelfTransitions}
                 onDeltaFilterChange={toggleDeltaFilter}
