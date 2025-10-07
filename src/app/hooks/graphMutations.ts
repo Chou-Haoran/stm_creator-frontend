@@ -44,6 +44,7 @@ export function deriveModalValues(node: AppNode): NodeAttributes {
         stateNumber: node.data.attributes?.stateNumber ?? '',
         vastClass: node.data.attributes?.vastClass ?? '',
         condition: node.data.attributes?.condition ?? '',
+        imageUrl: node.data.attributes?.imageUrl ?? '',
         id: node.id,
     };
 }
@@ -64,6 +65,7 @@ export function applyNodeAttributes(nodes: AppNode[], nodeId: string, attributes
                     stateNumber: attributes.stateNumber,
                     vastClass: attributes.vastClass,
                     condition: attributes.condition,
+                    imageUrl: attributes.imageUrl,
                 },
             },
         } as AppNode;
@@ -84,6 +86,7 @@ export function createCustomNode(
             stateNumber: attributes.stateNumber,
             vastClass: attributes.vastClass,
             condition: attributes.condition,
+            imageUrl: attributes.imageUrl,
         },
     };
 
@@ -103,11 +106,22 @@ export function updateBmrgStateName(
     stateId: number,
     attributes: NodeAttributes,
 ): BMRGData {
-    const states = data.states.map((state) =>
-        state.state_id === stateId
-            ? { ...state, state_name: attributes.stateName }
-            : state,
-    );
+    const states = data.states.map((state) => {
+        if (state.state_id !== stateId) {
+            return state;
+        }
+
+        const nextAttributes = {
+            ...(state.attributes ?? {}),
+            ...(attributes.imageUrl !== undefined ? { imageUrl: attributes.imageUrl } : {}),
+        };
+
+        return {
+            ...state,
+            state_name: attributes.stateName,
+            attributes: nextAttributes,
+        };
+    });
 
     return {
         ...data,
@@ -137,7 +151,7 @@ export function buildStateFromAttributes(
         condition_lower: 0.0,
         eks_condition_estimate: -9999,
         elicitation_type: 'user-created',
-        attributes: null,
+        attributes: attributes.imageUrl ? { imageUrl: attributes.imageUrl } : null,
     };
 }
 export function addStateToBmrg(data: BMRGData, state: StateData): BMRGData {
