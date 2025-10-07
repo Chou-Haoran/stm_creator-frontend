@@ -22,15 +22,30 @@ interface ChainPart {
     drivers: Driver[];
 }
 
-// Component to display causal chain drivers grouped by chain part
-const CausalChainDisplay = ({ causalChain }: { causalChain: ChainPart[] }) => {
-    // Counts total drivers for conditional rendering
+// Predefined driver options (TBD: replace with real options when available)
+const PREDEFINED_DRIVERS: Driver[] = [
+    { driver_group: 'Climate', driver: 'Increased temperature' },
+    { driver_group: 'Climate', driver: 'Decreased rainfall' },
+    { driver_group: 'Disturbance', driver: 'Fire frequency increase' },
+    { driver_group: 'Biotic', driver: 'Invasive species pressure' },
+];
+
+// Editable causal chain component with add/remove interactions
+const CausalChainEditor = ({
+    causalChain,
+    onRemoveDriver,
+    onAddDriver,
+}: {
+    causalChain: ChainPart[];
+    onRemoveDriver: (partIndex: number, driver: Driver) => void;
+    onAddDriver: (partIndex: number, driver: Driver) => void;
+}) => {
     const totalDrivers = causalChain.reduce((count, part) => count + part.drivers.length, 0);
 
-    if (!causalChain || causalChain.length === 0 || totalDrivers === 0) {
+    if (!causalChain || causalChain.length === 0) {
         return (
             <div className="empty-causal-chain">
-                <p className="empty-causal-chain-message">No causal chain drivers available for this transition.</p>
+                <p className="empty-causal-chain-message">No causal chain defined. Add drivers under a chain part.</p>
             </div>
         );
     }
@@ -40,50 +55,99 @@ const CausalChainDisplay = ({ causalChain }: { causalChain: ChainPart[] }) => {
             <h4 className="causal-chain-title">Causal Chain Drivers:</h4>
 
             {causalChain.map((chainPart, index) => {
-                // Skip displaying empty chain parts or those with empty driver lists
-                if (!chainPart.chain_part || chainPart.drivers.length === 0) return null;
+                if (!chainPart.chain_part) return null;
+
+                // Local UI state per part for selected driver to add
+                const selectId = `add-driver-select-${index}`;
+
+                // Group drivers by driver_group for display
+                const groupedDrivers = chainPart.drivers.reduce((groups, driver) => {
+                    const group = driver.driver_group;
+                    if (!groups[group]) {
+                        groups[group] = [] as Driver[];
+                    }
+                    groups[group].push(driver);
+                    return groups;
+                }, {} as Record<string, Driver[]>);
 
                 return (
                     <div key={index} className="chain-part">
                         <div className="chain-part-header">
                             <span>{chainPart.chain_part}</span>
-                            <span className="chain-part-counter">{chainPart.drivers.length}</span>
+                            <div className="chain-part-actions">
+                                <span className="chain-part-counter">{chainPart.drivers.length}</span>
+                                <div className="add-driver-inline">
+                                    <select
+                                        id={selectId}
+                                        className="add-driver-select"
+                                        defaultValue=""
+                                        aria-label="Select a driver to add"
+                                    >
+                                        <option value="" disabled>Add Driver…</option>
+                                        {PREDEFINED_DRIVERS.map((opt, i) => (
+                                            <option key={i} value={`${opt.driver_group}|||${opt.driver}`}>
+                                                {opt.driver_group} — {opt.driver}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="btn btn-small btn-primary add-driver-btn"
+                                        onClick={() => {
+                                            const select = document.getElementById(selectId) as HTMLSelectElement | null;
+                                            if (!select || !select.value) return;
+                                            const [group, name] = select.value.split('|||');
+                                            onAddDriver(index, { driver_group: group, driver: name });
+                                            select.value = '';
+                                        }}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="chain-part-content">
-                            {/* Group drivers by driver_group */}
-                            {(() => {
-                                // Group drivers by driver_group
-                                const groupedDrivers = chainPart.drivers.reduce((groups, driver) => {
-                                    const group = driver.driver_group;
-                                    if (!groups[group]) {
-                                        groups[group] = [];
-                                    }
-                                    groups[group].push(driver);
-                                    return groups;
-                                }, {} as Record<string, Driver[]>);
-
-                                return Object.entries(groupedDrivers).map(([groupName, drivers], groupIndex) => (
-                                    <div key={groupIndex} className="driver-group">
-                                        <div className={`driver-group-content ${groupIndex < Object.keys(groupedDrivers).length - 1 ? 'with-border' : ''}`}>
-                                            <div className="driver-group-name">
-                                                {groupName}
-                                            </div>
-                                            <ul className="driver-list">
-                                                {drivers.map((driver, driverIndex) => (
-                                                    <li key={driverIndex} className="driver-item">
-                                                        {driver.driver}
-                                                    </li>
-                                                ))}
-                                            </ul>
+                            {Object.entries(groupedDrivers).map(([groupName, drivers], groupIndex) => (
+                                <div key={groupIndex} className="driver-group">
+                                    <div className={`driver-group-content ${groupIndex < Object.keys(groupedDrivers).length - 1 ? 'with-border' : ''}`}>
+                                        <div className="driver-group-name">
+                                            {groupName}
                                         </div>
+                                        <ul className="driver-list">
+                                            {drivers.map((driver, driverIndex) => (
+                                                <li key={driverIndex} className="driver-item">
+                                                    <span className="driver-name">{driver.driver}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="driver-delete"
+                                                        aria-label="Remove driver"
+                                                        title="Remove"
+                                                        onClick={() => onRemoveDriver(index, driver)}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
-                                ));
-                            })()}
+                                </div>
+                            ))}
+                            {chainPart.drivers.length === 0 && (
+                                <div className="empty-causal-chain">
+                                    <p className="empty-causal-chain-message">No drivers in this chain part.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
             })}
+
+            {totalDrivers === 0 && (
+                <div className="empty-causal-chain">
+                    <p className="empty-causal-chain-message">No causal chain drivers available for this transition.</p>
+                </div>
+            )}
         </div>
     );
 };
@@ -129,6 +193,36 @@ export function TransitionModal({ isOpen, onClose, onSave, transition, stateName
     const totalDrivers = transitionData.causal_chain
         ? transitionData.causal_chain.reduce((count, part) => count + part.drivers.length, 0)
         : 0;
+
+    const handleRemoveDriver = (partIndex: number, driverToRemove: Driver) => {
+        setTransitionData((prev) => {
+            if (!prev) return prev;
+            const nextChain = (prev.causal_chain ?? []).map((p, idx) => {
+                if (idx !== partIndex) return p;
+                const driverIndex = p.drivers.indexOf(driverToRemove);
+                if (driverIndex === -1) return p;
+                const nextDrivers = [...p.drivers.slice(0, driverIndex), ...p.drivers.slice(driverIndex + 1)];
+                return { ...p, drivers: nextDrivers } as ChainPart;
+            });
+            return { ...prev, causal_chain: nextChain };
+        });
+    };
+
+    const handleAddDriver = (partIndex: number, driverToAdd: Driver) => {
+        setTransitionData((prev) => {
+            if (!prev) return prev;
+            const nextChain = (prev.causal_chain ?? []).map((p, idx) => {
+                if (idx !== partIndex) return p;
+                // Avoid duplicates of exact same driver object
+                const exists = p.drivers.some(
+                    (d) => d.driver === driverToAdd.driver && d.driver_group === driverToAdd.driver_group,
+                );
+                const nextDrivers = exists ? p.drivers : [...p.drivers, driverToAdd];
+                return { ...p, drivers: nextDrivers } as ChainPart;
+            });
+            return { ...prev, causal_chain: nextChain };
+        });
+    };
 
     return (
         <div className="transition-modal-overlay">
@@ -246,7 +340,11 @@ export function TransitionModal({ isOpen, onClose, onSave, transition, stateName
                             </div>
                         </>
                     ) : (
-                        <CausalChainDisplay causalChain={transitionData.causal_chain || []} />
+                        <CausalChainEditor
+                            causalChain={transitionData.causal_chain || []}
+                            onRemoveDriver={handleRemoveDriver}
+                            onAddDriver={handleAddDriver}
+                        />
                     )}
 
                     <div className="form-buttons">
