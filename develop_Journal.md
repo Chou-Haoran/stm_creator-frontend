@@ -87,5 +87,27 @@ Added client-side version snapshots so editors can save, view, restore, and dele
 - History is capped at 50 versions to avoid unbounded storage; tweak the constant in `versionStorage` if requirements change.
 - Restoring a version rebuilds nodes and edges via existing utilities, ensuring downstream components stay synchronized.
 
+---
+
+## Entry — EKS JSON Import/Export
+**Branch:** `feature/eks-json-import-export`  
+**Status:** Merged
+
+### Summary
+Added import/export support for the EKS JSON schema so STM graphs can move between this editor and PLANR/legacy STM datasets. Users can export the current graph as JSON or import an external file to redraw the diagram.
+
+### Goals
+- Generate schema-compliant JSON containing state condition/estimate data and transition timing/likelihood/delta fields.
+- Allow developers to load an EKS JSON file and have the canvas rebuild automatically.
+- Surface clear validation errors when the payload is malformed.
+
+### Key Changes
+- Introduced `utils/eksJson.ts` with converters between `BMRGData` and the EKS schema, including guard rails for missing fields.
+- Added `graphImportExport.ts` and connected it to `useGraphEditor` so export uses the active model and import rebuilds nodes/edges via existing helpers.
+- Extended `GraphToolbar` with hidden file input plus “Import EKS” / “Export EKS” buttons to make the workflow accessible in the UI.
+
+### Notes
+- Imports currently use `window.alert` for errors; migrate to an in-app toast when a notification system is available.
+- Export filenames include ISO timestamps—coordinate with downstream tooling if a different naming convention is needed.
 
 
