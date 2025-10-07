@@ -12,7 +12,7 @@ import {
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode } from '../../nodes/types';
 import { BMRGData, TransitionData } from '../../utils/stateTransition';
-import { DeltaFilterOption } from '../types';
+import { DeltaFilterOption, GraphModelVersion } from '../types';
 
 export interface UseGraphEditorResult {
     nodesWithCallbacks: AppNode[];
@@ -34,6 +34,8 @@ export interface UseGraphEditorResult {
     initialNodeValues: NodeAttributes | undefined;
     currentTransition: TransitionData | null;
     stateNameMap: Record<number, string>;
+    versions: GraphModelVersion[];
+    isVersionModalOpen: boolean;
     onNodesChange: OnNodesChange<AppNode>;
     onConnect: OnConnect;
     onEdgeClick: EdgeMouseHandler;
@@ -50,4 +52,9 @@ export interface UseGraphEditorResult {
     openAddNodeModal: () => void;
     closeNodeModal: () => void;
     closeTransitionModal: () => void;
+    saveCurrentVersion: () => void;
+    openVersionManager: () => void;
+    closeVersionManager: () => void;
+    restoreVersion: (id: string) => void;
+    deleteVersion: (id: string) => void;
 }

@@ -10,7 +10,7 @@ import {
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode } from '../../nodes/types';
 import { BMRGData, TransitionData } from '../../utils/stateTransition';
-import { DeltaFilterOption } from '../types';
+import { DeltaFilterOption, GraphModelVersion } from '../types';
 
 export interface GraphBaseState {
     nodes: AppNode[];
@@ -46,6 +46,10 @@ export interface GraphBaseState {
     setError: React.Dispatch<React.SetStateAction<string | null>>;
     isSaving: boolean;
     setIsSaving: React.Dispatch<React.SetStateAction<boolean>>;
+    versions: GraphModelVersion[];
+    setVersions: React.Dispatch<React.SetStateAction<GraphModelVersion[]>>;
+    isVersionModalOpen: boolean;
+    setIsVersionModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useGraphBaseState(): GraphBaseState {
@@ -70,6 +74,8 @@ export function useGraphBaseState(): GraphBaseState {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [versions, setVersions] = useState<GraphModelVersion[]>([]);
+    const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
 
     return {
         nodes,
@@ -105,5 +111,9 @@ export function useGraphBaseState(): GraphBaseState {
         setError,
         isSaving,
         setIsSaving,
+        versions,
+        setVersions,
+        isVersionModalOpen,
+        setIsVersionModalOpen,
     };
 }

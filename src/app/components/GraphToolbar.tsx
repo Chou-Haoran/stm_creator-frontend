@@ -7,6 +7,8 @@ interface GraphToolbarProps {
     onToggleEdgeCreation: () => void;
     onLoadEdges: () => void;
     onSaveModel: () => void | Promise<void>;
+    onSaveVersion: () => void;
+    onOpenVersionManager: () => void;
     onRelayout: () => void;
     onToggleSelfTransitions: () => void;
     onDeltaFilterChange: (option: DeltaFilterOption) => void;
@@ -23,6 +25,8 @@ export function GraphToolbar({
     onLoadEdges,
     onSaveModel,
     onRelayout,
+    onSaveVersion,
+    onOpenVersionManager,
     onToggleSelfTransitions,
     onDeltaFilterChange,
     edgeCreationMode,
@@ -58,6 +62,14 @@ export function GraphToolbar({
                 className={`button button-success ${isSaving ? 'button-disabled' : ''}`}
             >
                 {isSaving ? '💾 Saving...' : '💾 Save Model'}
+            </button>
+
+            <button onClick={onSaveVersion} className="button button-secondary">
+                💾 Save Version
+            </button>
+
+            <button onClick={onOpenVersionManager} className="button button-secondary">
+                🗂 Versions
             </button>
 
             <button onClick={onRelayout} className="button button-secondary">
