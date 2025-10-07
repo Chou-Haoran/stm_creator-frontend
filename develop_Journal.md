@@ -111,3 +111,57 @@ Added import/export support for the EKS JSON schema so STM graphs can move betwe
 - Export filenames include ISO timestamps—coordinate with downstream tooling if a different naming convention is needed.
 
 
+
+
+---
+title: "Dev Log — Transition Attribute & Filtering Panels"
+date: "2025-10-07"
+author: "Jiandi Mu"
+---
+
+## Summary
+Added two additive UI panels to the STM editor :
+
+- `src/extensions/TransitionAttributePanel.tsx` — edit `time_25`, `time_100`, `likelihood_25`, `likelihood_100`, `transition_delta`.
+- `src/extensions/TransitionFilterPanel.tsx` — filter by `time_25/100` and optional probability range; composes with toolbar **Delta** and **Self-transitions**.
+- `src/extensions/extensions.css` — shared lightweight styles.
+
+Panels mount inside `<ReactFlow>`; edits use existing `onSaveTransition`; filtering is DOM show/hide.
+
+## Goals
+- Enable consistent editing of transition attributes.
+- Provide workshop-friendly filtering by plausibility and probability.
+- Avoid touching GraphStore/hook internals; keep integration minimal.
+- Keep layout clear (no overlap with toolbar/Tips).
+
+## Key Changes
+
+### 1) Feature — Transition Attribute Panel
+- **Files:** `src/extensions/TransitionAttributePanel.tsx`, `src/extensions/extensions.css`
+- **Behavior:**
+  - Resolves the freshest selection via `bmrgData + transition_id` .
+  - Normalizes values: booleans → `0/1`; likelihoods clamped to `[0,1]`.
+  - Calls existing `onSaveTransition`; optimistic local sync after save.
+  - Collapsible (▾/▸); disabled when no selection.
+- **Layout:** top: `76px`, left: `380px`, width: `340px`.
+
+### 2) Feature — Transition Filtering Panel
+- **Files:** `src/extensions/TransitionFilterPanel.tsx`, `src/extensions/extensions.css`
+- **Filters:**
+  - `time_25 = true`, `time_100 = true` (robust truth parsing for `0/1/true/"1"/"true"`).
+  - Probability range (min/max, *Either* or *Both*). **Inactive by default** until min/max changed.
+  - Intersects with toolbar **Delta** (`positive|neutral|negative|all`) and **Self-transitions**.
+- **Rendering:** DOM `style.display` toggle via `[data-id*="transition-"]` (store untouched).
+- **UX:** Collapsible (▾/▸), shows `Matches: n`.
+- **Layout:** top: `76px`, left: `8px`, width: `360px`.
+
+### 3) Styles
+- **File:** `src/extensions/extensions.css`
+- Card layout, compact rows/fields, “ghost” collapse button, disabled state for attribute panel.
+
+## QA Checklist
+- Select edge → attribute fields populate; **Save** updates edge style/tooltip.
+- Toggle `time_25/100`; adjust probability min/max; switch *Either/Both*.
+- Composition with toolbar filters works as **intersection**.
+-  **Clear** restores visibility and calls `onReset()`.
+

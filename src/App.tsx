@@ -25,6 +25,11 @@ import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
 
+import { TransitionAttributePanel } from './extensions/TransitionAttributePanel';
+import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
+import './extensions/extensions.css';
+
+
 function App() {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const {
@@ -139,6 +144,25 @@ function App() {
                 <Panel position="top-right">
                     <TipsPanel />
                 </Panel>
+
+                {/* P2: 3. Transition Attribute Panel */}
+                <TransitionAttributePanel
+                  currentTransition={currentTransition}
+                  bmrgData={bmrgData}
+                  stateNameMap={stateNameMap}
+                  onSaveTransition={handleSaveTransition}
+                />
+
+                {/* P2: 4. Transition Filtering */}
+                <TransitionFilterPanel
+                  bmrgData={bmrgData}
+                  showSelfTransitions={showSelfTransitions}
+                  deltaFilter={deltaFilter}
+                  onToggleSelfTransitions={toggleSelfTransitions}
+                  onDeltaFilterChange={toggleDeltaFilter}
+                  onReset={loadExistingEdges}
+                />
+
             </ReactFlow>
 
             <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
