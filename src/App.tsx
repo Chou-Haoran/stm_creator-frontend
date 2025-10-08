@@ -1,19 +1,16 @@
-
 import {
-    Background,
-    Controls,
-    MiniMap,
-    Panel,
-    ReactFlow,
-    ReactFlowProvider,
+  Background,
+  Controls,
+  MiniMap,
+  Panel,
+  ReactFlow,
+  ReactFlowProvider,
 } from '@xyflow/react';
 import { useState } from 'react';
-
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
 import './SwimlaneStyle.css';
 import './App.css';
-
 import { GraphToolbar } from './app/components/GraphToolbar';
 import { EdgeCreationHint } from './app/components/EdgeCreationHint';
 import { ErrorState } from './app/components/ErrorState';
@@ -24,185 +21,165 @@ import { HelpModal } from './app/components/HelpModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
-
-import { TransitionAttributePanel } from './extensions/TransitionAttributePanel';
 import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
 import './extensions/extensions.css';
 
-
 function App() {
-    const [isHelpOpen, setIsHelpOpen] = useState(false);
-    const {
-        nodesWithCallbacks,
-        edges,
-        nodeTypes,
-        customEdgeTypes,
-        defaultEdgeOptions,
-        bmrgData,
-        isLoading,
-        error,
-        isSaving,
-        edgeCreationMode,
-        startNodeId,
-        showSelfTransitions,
-        deltaFilter,
-        isNodeModalOpen,
-        isTransitionModalOpen,
-        isEditing,
-        initialNodeValues,
-        currentTransition,
-        stateNameMap,
-        versions,
-        isVersionModalOpen,
-        onNodesChange,
-        onConnect,
-        onEdgeClick,
-        onEdgeDoubleClick,
-        handleEdgesChange,
-        handleSaveNode,
-        handleSaveTransition,
-        handleSaveModel,
-        handleReLayout,
-        toggleEdgeCreationMode,
-        loadExistingEdges,
-        toggleSelfTransitions,
-        toggleDeltaFilter,
-        openAddNodeModal,
-        closeNodeModal,
-        closeTransitionModal,
-        saveCurrentVersion,
-        openVersionManager,
-        closeVersionManager,
-        restoreVersion,
-        deleteVersion,
-        exportToEKS,
-        importFromEKS,
-    } = useGraphEditor();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const {
+    nodesWithCallbacks,
+    edges,
+    nodeTypes,
+    customEdgeTypes,
+    defaultEdgeOptions,
+    bmrgData,
+    isLoading,
+    error,
+    isSaving,
+    edgeCreationMode,
+    startNodeId,
+    showSelfTransitions,
+    deltaFilter,
+    isNodeModalOpen,
+    isTransitionModalOpen,
+    isEditing,
+    initialNodeValues,
+    currentTransition,
+    stateNameMap,
+    versions,
+    isVersionModalOpen,
+    onNodesChange,
+    onConnect,
+    onEdgeClick,
+    onEdgeDoubleClick,
+    handleEdgesChange,
+    handleSaveNode,
+    handleSaveTransition,
+    handleSaveModel,
+    handleReLayout,
+    toggleEdgeCreationMode,
+    loadExistingEdges,
+    toggleSelfTransitions,
+    toggleDeltaFilter,
+    openAddNodeModal,
+    closeNodeModal,
+    closeTransitionModal,
+    saveCurrentVersion,
+    openVersionManager,
+    closeVersionManager,
+    restoreVersion,
+    deleteVersion,
+    exportToEKS,
+    importFromEKS,
+  } = useGraphEditor();
 
-    if (isLoading) {
-        return <LoadingState />;
-    }
+  if (isLoading) return <LoadingState />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
-    if (error) {
-        return <ErrorState message={error} onRetry={() => window.location.reload()} />;
-    }
+  return (
+    <div className="app-container">
+      {/* Toolbar WITHOUT the old Delta filter box */}
+      <GraphToolbar
+        onAddNode={openAddNodeModal}
+        onToggleEdgeCreation={toggleEdgeCreationMode}
+        onLoadEdges={loadExistingEdges}
+        onSaveModel={handleSaveModel}
+        onSaveVersion={saveCurrentVersion}
+        onOpenVersionManager={openVersionManager}
+        onImportEKS={importFromEKS}
+        onExportEKS={exportToEKS}
+        onRelayout={handleReLayout}
+        onToggleSelfTransitions={toggleSelfTransitions}
+        edgeCreationMode={edgeCreationMode}
+        isSaving={isSaving}
+        showSelfTransitions={showSelfTransitions}
+        bmrgData={bmrgData}
+        onOpenHelp={() => setIsHelpOpen(true)}
+      />
 
-    return (
-        <div className="app-container">
-            <GraphToolbar
-                onAddNode={openAddNodeModal}
-                onToggleEdgeCreation={toggleEdgeCreationMode}
-                onLoadEdges={loadExistingEdges}
-                onSaveModel={handleSaveModel}
-                onSaveVersion={saveCurrentVersion}
-                onOpenVersionManager={openVersionManager}
-                onImportEKS={importFromEKS}
-                onExportEKS={exportToEKS}
-                onRelayout={handleReLayout}
-                onToggleSelfTransitions={toggleSelfTransitions}
-                onDeltaFilterChange={toggleDeltaFilter}
-                edgeCreationMode={edgeCreationMode}
-                isSaving={isSaving}
-                showSelfTransitions={showSelfTransitions}
-                deltaFilter={deltaFilter}
-                bmrgData={bmrgData}
-                onOpenHelp={() => setIsHelpOpen(true)}
-            />
+      <ReactFlow
+        nodes={nodesWithCallbacks}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={customEdgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        onNodesChange={onNodesChange}
+        onEdgesChange={handleEdgesChange}
+        onConnect={onConnect}
+        onEdgeClick={onEdgeClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
+        edgesFocusable
+        elementsSelectable
+        edgesReconnectable
+        reconnectRadius={10}
+        fitView
+        fitViewOptions={{ padding: 0.2, includeHiddenNodes: false }}
+        proOptions={{ hideAttribution: true }}
+        minZoom={0.2}
+        maxZoom={2}
+        nodesDraggable
+        connectOnClick={false}
+        zoomOnDoubleClick={false}
+        panOnDrag
+        panOnScroll
+        snapToGrid
+        snapGrid={[20, 20]}
+      >
+        <Background />
+        <MiniMap />
+        <Controls />
 
-            <ReactFlow
-                nodes={nodesWithCallbacks}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={customEdgeTypes}
-                defaultEdgeOptions={defaultEdgeOptions}
-                onNodesChange={onNodesChange}
-                onEdgesChange={handleEdgesChange}
-                onConnect={onConnect}
-                onEdgeClick={onEdgeClick}
-                onEdgeDoubleClick={onEdgeDoubleClick}
-                edgesFocusable
-                elementsSelectable
-                edgesReconnectable
-                reconnectRadius={10}
-                fitView
-                fitViewOptions={{ padding: 0.2, includeHiddenNodes: false }}
-                proOptions={{ hideAttribution: true }}
-                minZoom={0.2}
-                maxZoom={2}
-                nodesDraggable
-                connectOnClick={false}
-                zoomOnDoubleClick={false}
-                panOnDrag
-                panOnScroll
-                snapToGrid
-                snapGrid={[20, 20]}
-            >
-                <Background />
-                <MiniMap />
-                <Controls />
 
-                <Panel position="top-right">
-                    <TipsPanel />
-                </Panel>
+        <Panel position="top-right" style={{ top: 100, right: 8, width: 360 }}>
+          <TipsPanel />
+        </Panel>
 
-                {/* P2: 3. Transition Attribute Panel */}
-                <TransitionAttributePanel
-                  currentTransition={currentTransition}
-                  bmrgData={bmrgData}
-                  stateNameMap={stateNameMap}
-                  onSaveTransition={handleSaveTransition}
-                />
+        {/* P2: 4. Transition Filtering*/}
+        <TransitionFilterPanel
+          bmrgData={bmrgData}
+          showSelfTransitions={showSelfTransitions}
+          deltaFilter={deltaFilter}
+          onToggleSelfTransitions={toggleSelfTransitions}
+          onDeltaFilterChange={toggleDeltaFilter}
+          onReset={loadExistingEdges}
+        />
+      </ReactFlow>
 
-                {/* P2: 4. Transition Filtering */}
-                <TransitionFilterPanel
-                  bmrgData={bmrgData}
-                  showSelfTransitions={showSelfTransitions}
-                  deltaFilter={deltaFilter}
-                  onToggleSelfTransitions={toggleSelfTransitions}
-                  onDeltaFilterChange={toggleDeltaFilter}
-                  onReset={loadExistingEdges}
-                />
+      <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
 
-            </ReactFlow>
+      <NodeModal
+        isOpen={isNodeModalOpen}
+        onClose={closeNodeModal}
+        onSave={handleSaveNode}
+        initialValues={initialNodeValues}
+        isEditing={isEditing}
+      />
 
-            <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
+      <TransitionModal
+        isOpen={isTransitionModalOpen}
+        onClose={closeTransitionModal}
+        onSave={handleSaveTransition}
+        transition={currentTransition}
+        stateNames={stateNameMap}
+      />
 
-            <NodeModal
-                isOpen={isNodeModalOpen}
-                onClose={closeNodeModal}
-                onSave={handleSaveNode}
-                initialValues={initialNodeValues}
-                isEditing={isEditing}
-            />
+      <VersionManagerModal
+        isOpen={isVersionModalOpen}
+        versions={versions}
+        onClose={closeVersionManager}
+        onRestore={restoreVersion}
+        onDelete={deleteVersion}
+      />
 
-            <TransitionModal
-                isOpen={isTransitionModalOpen}
-                onClose={closeTransitionModal}
-                onSave={handleSaveTransition}
-                transition={currentTransition}
-                stateNames={stateNameMap}
-            />
-
-            <VersionManagerModal
-                isOpen={isVersionModalOpen}
-                versions={versions}
-                onClose={closeVersionManager}
-                onRestore={restoreVersion}
-                onDelete={deleteVersion}
-            />
-
-            <HelpModal
-                isOpen={isHelpOpen}
-                onClose={() => setIsHelpOpen(false)}
-            />
-        </div>
-    );
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+    </div>
+  );
 }
 
 export default function AppWithProvider() {
-    return (
-        <ReactFlowProvider>
-            <App />
-        </ReactFlowProvider>
-    );
+  return (
+    <ReactFlowProvider>
+      <App />
+    </ReactFlowProvider>
+  );
 }
