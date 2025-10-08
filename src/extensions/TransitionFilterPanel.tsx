@@ -7,19 +7,21 @@ import type { DeltaFilterOption } from '../app/types';
 type Props = {
   bmrgData: BMRGData | null;
 
-  // Global filters from the toolbar (we respect them and intersect with local filters).
+  // Global filters from the toolbar (we keep intersecting with them)
   showSelfTransitions: boolean;
   deltaFilter: DeltaFilterOption;
 
-  // Kept for compatibility with App.tsx, not rendered here.
-  onToggleSelfTransitions: () => void;
+  // We will call this when user changes delta in this panel (keeps toolbar in sync)
   onDeltaFilterChange: (opt: DeltaFilterOption) => void;
 
-  // Called when clearing local filters.
+  // Kept for compatibility; not rendered here (toggle still lives in toolbar)
+  onToggleSelfTransitions: () => void;
+
+  // Called when user clicks "Clear" to restore defaults / redraw edges if needed
   onReset: () => void;
 };
 
-// Robust truthy parser for 0/1, boolean, and string variants.
+// Robust truthy for 0/1/true/false/"1"/"true"/"yes"
 function isTruthy(v: unknown): boolean {
   if (typeof v === 'boolean') return v;
   if (typeof v === 'number') return v !== 0;
@@ -30,55 +32,53 @@ function isTruthy(v: unknown): boolean {
   return false;
 }
 
-function inRange(n: number | undefined, lo: number, hi: number): boolean {
-  if (typeof n !== 'number' || Number.isNaN(n)) return false;
-  return n >= lo && n <= hi;
-}
-
 export function TransitionFilterPanel({
   bmrgData,
   showSelfTransitions,
   deltaFilter,
-  onToggleSelfTransitions: _onToggleSelfTransitions, // unused UI
-  onDeltaFilterChange: _onDeltaFilterChange,          // unused UI
+  onDeltaFilterChange,
+  onToggleSelfTransitions: _onToggleSelfTransitions, // not rendered
   onReset,
 }: Props) {
-  // Collapsible
-  const [collapsed, setCollapsed] = useState(false);
+  // Default collapsed so it doesn't clutter the canvas
+  const [collapsed, setCollapsed] = useState(true);
 
-  // Local filters
+  // Local-only filters
   const [requireTime25, setRequireTime25] = useState(false);
   const [requireTime100, setRequireTime100] = useState(false);
   const [probMin, setProbMin] = useState<number>(0);
   const [probMax, setProbMax] = useState<number>(1);
-  const [rangeMode, setRangeMode] = useState<'any' | 'both'>('any'); // 'any' => either L25 or L100 in range; 'both' => both in range
+  // 'any' => either L25 or L100 in range; 'both' => both in range
+  const [rangeMode, setRangeMode] = useState<'any' | 'both'>('any');
 
-  // Compute visible ids after ALL filters (toolbar + local)
+  // Probability filter becomes active only when user changes min/max
+  const probActive = probMin !== 0 || probMax !== 1;
+
+  // Compute visible ids after ALL filters (toolbar delta/self ∩ local)
   const { visibleIds, matchCount } = useMemo(() => {
     const ids = new Set<number>();
     let count = 0;
-
     if (!bmrgData) return { visibleIds: ids, matchCount: 0 };
 
     for (const t of bmrgData.transitions) {
-      // 1) Global delta
+      // 1) Delta (global)
       if (deltaFilter === 'positive' && !(t.transition_delta > 0)) continue;
       if (deltaFilter === 'neutral'  && !(t.transition_delta === 0)) continue;
       if (deltaFilter === 'negative' && !(t.transition_delta < 0)) continue;
-
-      // 2) Global self-transitions
+      // 2) Self transitions (global)
       if (!showSelfTransitions && t.start_state_id === t.end_state_id) continue;
-
       // 3) Local time flags
       if (requireTime25  && !isTruthy(t.time_25))  continue;
       if (requireTime100 && !isTruthy(t.time_100)) continue;
-
-      // 4) Local probability range
-      const in25  = inRange(t.likelihood_25,  probMin, probMax);
-      const in100 = inRange(t.likelihood_100, probMin, probMax);
-      const passRange = rangeMode === 'both' ? (in25 && in100) : (in25 || in100);
-      if (!passRange) continue;
-
+      // 4) Local probability range (only if user actually adjusted it)
+      if (probActive) {
+        const l25  = typeof t.likelihood_25  === 'number' ? t.likelihood_25  : NaN;
+        const l100 = typeof t.likelihood_100 === 'number' ? t.likelihood_100 : NaN;
+        const in25  = l25  >= probMin && l25  <= probMax;
+        const in100 = l100 >= probMin && l100 <= probMax;
+        const passRange = rangeMode === 'both' ? (in25 && in100) : (in25 || in100);
+        if (!passRange) continue;
+      }
       ids.add(t.transition_id);
       count++;
     }
@@ -92,31 +92,24 @@ export function TransitionFilterPanel({
     probMin,
     probMax,
     rangeMode,
+    probActive,
   ]);
 
-  // Apply DOM show/hide for edges (non-invasive to store)
+  // Apply DOM show/hide (non-invasive to store)
   useEffect(() => {
-    // If no local filters active, restore visibility (toolbar-only state)
-    const hasLocal =
-      requireTime25 || requireTime100 || probMin !== 0 || probMax !== 1 || rangeMode !== 'any';
-
+    const hasLocal = requireTime25 || requireTime100 || probActive;
     const allEdges = Array.from(
       document.querySelectorAll<HTMLElement>('[data-id*="transition-"]')
     );
     if (!allEdges.length) return;
 
     if (!hasLocal) {
+      // No local filters -> restore visibility (respecting whatever toolbar already did)
       allEdges.forEach((el) => (el.style.display = ''));
       return;
     }
 
-    // Allow hide-all when there are zero matches
-    const ALLOW_HIDE_ALL = true;
-
-    if (visibleIds.size === 0 && !ALLOW_HIDE_ALL) {
-      return; // keep current visibility
-    }
-
+    // Explicitly allow empty matches to hide everything
     allEdges.forEach((el) => {
       const idAttr = el.getAttribute('data-id') || '';
       const m = idAttr.match(/transition-(\d+)/);
@@ -124,9 +117,9 @@ export function TransitionFilterPanel({
       const id = Number(m[1]);
       el.style.display = visibleIds.has(id) ? '' : 'none';
     });
-  }, [visibleIds, requireTime25, requireTime100, probMin, probMax, rangeMode]);
+  }, [visibleIds, requireTime25, requireTime100, probActive]);
 
-  // Clear local filters and restore
+  // Reset local filters & restore visibility
   const clearFilters = () => {
     setRequireTime25(false);
     setRequireTime100(false);
@@ -143,7 +136,7 @@ export function TransitionFilterPanel({
     <Panel
       position="top-left"
       className="stm-ext-panel"
-      style={{ top: 76, left: 8, width: 360 }}
+      style={{ top: 76, left: 8, width: 380 }}
     >
       <div className="stm-ext-card">
         <div className="stm-ext-header">
@@ -165,6 +158,22 @@ export function TransitionFilterPanel({
 
         {!collapsed && (
           <>
+            {/* Delta selector integrated here (keeps toolbar in sync) */}
+            <div className="stm-ext-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <label className="stm-ext-field">
+                <span>Δ filter</span>
+                <select
+                  value={deltaFilter}
+                  onChange={(e) => onDeltaFilterChange(e.target.value as DeltaFilterOption)}
+                >
+                  <option value="all">All</option>
+                  <option value="positive">Positive</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="negative">Negative</option>
+                </select>
+              </label>
+            </div>
+
             <div className="stm-ext-row">
               <label className="stm-ext-field">
                 <input
@@ -193,7 +202,9 @@ export function TransitionFilterPanel({
                   max={1}
                   step={0.01}
                   value={probMin}
-                  onChange={(e) => setProbMin(Math.min(1, Math.max(0, Number(e.target.value) || 0)))}
+                  onChange={(e) =>
+                    setProbMin(Math.min(1, Math.max(0, Number(e.target.value) || 0)))
+                  }
                 />
               </label>
               <label className="stm-ext-field">
@@ -204,7 +215,9 @@ export function TransitionFilterPanel({
                   max={1}
                   step={0.01}
                   value={probMax}
-                  onChange={(e) => setProbMax(Math.min(1, Math.max(0, Number(e.target.value) || 0)))}
+                  onChange={(e) =>
+                    setProbMax(Math.min(1, Math.max(0, Number(e.target.value) || 0)))
+                  }
                 />
               </label>
             </div>
