@@ -165,3 +165,111 @@ Panels mount inside `<ReactFlow>`; edits use existing `onSaveTransition`; filter
 - Composition with toolbar filters works as **intersection**.
 -  **Clear** restores visibility and calls `onReset()`.
 
+---
+
+## Entry — Editable Causal Chain in Edit Transition
+**Date:** "2025-10-07"  
+**Author:** "Edward Zhang"  
+**Commit:** `2565b12ff111dfc857735f4eee29e4cc327bbbc7`  
+**Status:** Merged
+
+### Summary
+Enhanced the transition modal with interactive causal chain editing capabilities. Users can now add and remove drivers from chain parts directly within the transition editing interface, making the causal chain management more intuitive and user-friendly.
+
+### Goals
+- Enable dynamic editing of causal chain drivers within the transition modal.
+- Provide predefined driver options for easy selection.
+- Allow removal of existing drivers with visual feedback.
+- Maintain data integrity and prevent duplicate entries.
+
+### Key Changes
+- **Files:** `src/transitions/transitionModal.css`, `src/transitions/transitionModal.tsx`
+- **Features:**
+  - Replaced `CausalChainDisplay` with `CausalChainEditor` component
+  - Added predefined driver options with grouped categories (Climate, Disturbance, Biotic)
+  - Implemented add/remove driver functionality with inline UI controls
+  - Added visual feedback for empty chain parts and driver management
+  - Enhanced styling with action buttons, counters, and hover effects
+- **UI Improvements:**
+  - Inline driver addition with dropdown selection
+  - Delete buttons for individual drivers
+  - Chain part counters showing driver counts
+  - Improved empty state messaging
+
+### Notes
+- Predefined drivers are currently hardcoded; consider making them configurable in future iterations.
+- Driver addition prevents duplicates by checking both driver name and group.
+- UI maintains responsive design with proper spacing and visual hierarchy.
+
+---
+
+## Entry — Help Modal System
+**Date:** "2025-10-07"  
+**Author:** "Edward Zhang"  
+**Commit:** `a3f728e510fae303f0468f52d93420389b68dfda`  
+**Status:** Merged
+
+### Summary
+Implemented a comprehensive help modal system that allows users to submit help requests directly from the application. The modal includes form fields for issue description, file attachments, and automatic email generation for developer support.
+
+### Goals
+- Provide users with an easy way to request help and report issues.
+- Enable file attachment support for bug reports and feature requests.
+- Generate pre-formatted emails to streamline developer communication.
+- Maintain a clean, accessible UI for the help system.
+
+### Key Changes
+- **Files:** `src/App.tsx`, `src/app/components/GraphToolbar.tsx`, `src/app/components/HelpModal.tsx`
+- **Features:**
+  - New `HelpModal` component with form-based interface
+  - Title and description fields for issue reporting
+  - File attachment support with size display
+  - Automatic `mailto:` link generation with pre-filled content
+  - Integration with toolbar via "❓ Help" button
+- **UI/UX:**
+  - Modal overlay with proper z-index layering
+  - Responsive design with max-width constraints
+  - Form validation and user feedback
+  - Clear instructions for file attachment limitations
+
+### Notes
+- Email clients don't support auto-attaching files via mailto links; users must attach files manually.
+- Developer email is configurable via props (defaults to 'dev@yourcompany.com').
+- Modal state is properly managed to prevent memory leaks.
+
+---
+
+## Entry — Image Upload for Node Editing
+**Date:** "2025-10-07"  
+**Author:** "Edward Zhang"  
+**Commit:** `faa98ddce7a9883189ed0932c1494a1eebfb5040`  
+**Status:** Merged
+
+### Summary
+Added image upload functionality to the node editing modal, allowing users to attach visual representations to state nodes. The feature includes image preview, file validation, and proper data persistence through the BMRG data structure.
+
+### Goals
+- Enable visual representation of state nodes through image uploads.
+- Provide image preview functionality in the editing interface.
+- Ensure proper data persistence and state management.
+- Maintain backward compatibility with existing node data.
+
+### Key Changes
+- **Files:** `src/app/hooks/graphMutations.ts`, `src/nodes/nodeModal.tsx`, `src/utils/stateTransition/nodes.ts`
+- **Features:**
+  - Added `imageUrl` field to `NodeAttributes` interface
+  - File upload input with image preview functionality
+  - Base64 encoding for image data storage
+  - Integration with existing node mutation hooks
+  - Proper state management for image data
+- **Data Flow:**
+  - Images are converted to base64 data URLs for storage
+  - Image data is persisted in BMRG state attributes
+  - Preview functionality shows existing images when editing
+  - File validation ensures only image files are accepted
+
+### Notes
+- Images are stored as base64 data URLs, which may impact performance with large files.
+- Consider implementing image compression or external storage for production use.
+- The feature maintains compatibility with existing node editing workflows.
+
