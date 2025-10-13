@@ -273,3 +273,128 @@ Added image upload functionality to the node editing modal, allowing users to at
 - Consider implementing image compression or external storage for production use.
 - The feature maintains compatibility with existing node editing workflows.
 
+
+````markdown
+---
+title: "Dev Log — Auth & Protected API Integration"
+date: "2025-10-14"
+author: "STM Creator Frontend"
+output: html_document
+---
+
+## Summary
+
+Front-end is now connected to the back-end auth flow. Login/Signup hits `/auth` endpoints and stores the returned JWT. Protected actions (e.g., *Save Model*) now include `Authorization: Bearer <token>` and call the secured `/models/save`. Role-based access is aligned across FE/BE (`Viewer`, `Editor`, `Admin`) with clear UI feedback for 401/403.
+
+## What Changed (Frontend)
+
+- **Auth API & Storage**
+  - `stm_creator-frontend/src/app/auth/api.ts`
+    - Export `API_BASE` (reads `VITE_API_BASE_URL`, default `http://localhost:3000`).
+    - Implement `login()`, `signup()` and local `authStorage` to persist JWT & user.
+    - Provide `getAuthHeader()` → `{ Authorization: \`Bearer ${token}\` }`.
+
+- **Auth UI**
+  - `stm_creator-frontend/src/app/auth/AuthPage.tsx`
+    - Registration password minimum length **8**.
+    - Role options unified to **Viewer / Editor / Admin**.
+
+- **Protected Model Save**
+  - `stm_creator-frontend/src/utils/dataLoader.tsx`
+    - Switch save call to `POST ${API_BASE}/models/save`.
+    - Auto-attach `Authorization` header via `getAuthHeader()`.
+    - Friendly messages on **401/403** (e.g., “需要 Editor/Admin 权限”).
+
+## Environment & Configuration
+
+- **Backend**: run `tern_backend` (CORS enabled, default port **3000**).
+- **Frontend**: optional `.env` at project root:
+  ```env
+  VITE_API_BASE_URL=http://localhost:3000
+````
+
+* Access the app via `npm run dev`.
+
+## How to Use (Step-by-Step)
+
+1. **Start Backend**
+
+   * Launch `tern_backend` on `http://localhost:3000`.
+
+2. **Configure Frontend (optional)**
+
+   * Create `.env` with `VITE_API_BASE_URL=http://localhost:3000`.
+
+3. **Run Frontend**
+
+   * `npm run dev` → open the **Login/Signup** page.
+
+4. **Sign Up or Log In**
+
+   * For saving models, choose **Editor** or **Admin** when signing up.
+   * **Viewer** can browse but **cannot** save (will see permission message).
+
+5. **Save a Model**
+
+   * Trigger *Save Model* in the UI.
+   * On success, request goes to `POST /models/save` with `Authorization` header.
+
+## Validation & Debugging Checklist
+
+* **Network (Browser DevTools)**
+
+  * Signup/Login: `POST /auth/signup` or `POST /auth/login` returns `200` with `{ token, user }`.
+  * Save Model: `POST /models/save` shows `Authorization: Bearer <token>` header.
+
+* **Roles**
+
+  * **Editor/Admin** → Save succeeds (assuming valid backend permissions).
+  * **Viewer** → See “need Editor/Admin rights” (403) message.
+
+* **Token Persistence**
+
+  * JWT stored via `authStorage` (survives page refresh).
+  * `getAuthHeader()` returns a populated `Authorization` header when logged in.
+
+## Example Requests (for backend verification)
+
+```bash
+# Login
+curl -i -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpass"}'
+
+# Save model (replace <TOKEN>)
+curl -i -X POST http://localhost:3000/models/save \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -d '{"name":"My STM","nodes":[/*...*/],"edges":[/*...*/]}'
+```
+
+## UX & Error Handling
+
+* **401** (Unauthenticated): prompt to log in.
+* **403** (Forbidden): “need Editor/Admin rights” guidance.
+* **Validation**: password policy (min length 8), role selection matches backend.
+
+## Security Notes
+
+* JWT only sent over `Authorization: Bearer` on protected calls.
+* Storage is centralized via `authStorage`.
+* CORS must remain enabled on the backend for local development.
+
+## Known Limitations / Next Steps
+
+* **Token refresh/expiry**: add silent refresh or re-login flow.
+* **Logout**: add explicit `logout()` to clear `authStorage` and headers.
+* **Global error surface**: centralize API error mapping (network vs auth vs server).
+* **E2E tests**: add Cypress flows for signup → save as Editor/Admin vs Viewer.
+* **Role UI states**: disable Save button for Viewer to reduce failed attempts.
+
+## Release Notes (TL;DR)
+
+* ✅ FE ↔ BE auth wired (`/auth`).
+* ✅ JWT persisted; `Authorization` header attached.
+* ✅ Protected save at `POST /models/save`.
+* ✅ Roles aligned (Viewer/Editor/Admin); friendly 401/403 messages.
+* ⚠️ Requires Editor/Admin for Save; Viewer is read-only.

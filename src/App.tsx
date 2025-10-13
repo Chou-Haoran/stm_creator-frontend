@@ -23,9 +23,17 @@ import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
 import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
 import './extensions/extensions.css';
+import AuthPage from './app/auth/AuthPage';
+import { authStorage, type AuthUser } from './app/auth/api';
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
+    const token = authStorage.getToken();
+    const user = authStorage.getUser();
+    return token && user ? { token, user } : null;
+  });
+  const [isGuest, setIsGuest] = useState(false);
   const {
     nodesWithCallbacks,
     edges,
@@ -72,6 +80,15 @@ function App() {
     exportToEKS,
     importFromEKS,
   } = useGraphEditor();
+
+  if (!auth && !isGuest) {
+    return (
+      <AuthPage
+        onAuthenticated={(a) => setAuth(a)}
+        onContinueGuest={() => setIsGuest(true)}
+      />
+    );
+  }
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
@@ -144,6 +161,29 @@ function App() {
           onReset={loadExistingEdges}
         />
       </ReactFlow>
+
+      {/* Simple auth indicator + logout */}
+      <Panel position="top-left" style={{ top: 8, left: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {auth ? (
+            <>
+              <span style={{ color: '#9ca3af', fontSize: 12 }}>Signed in as {auth.user.email}</span>
+              <button
+                onClick={() => { authStorage.clear(); setAuth(null); }}
+                style={{ fontSize: 12, padding: '6px 8px' }}
+              >Logout</button>
+            </>
+          ) : (
+            <>
+              <span style={{ color: '#9ca3af', fontSize: 12 }}>Guest mode</span>
+              <button
+                onClick={() => { setIsGuest(false); }}
+                style={{ fontSize: 12, padding: '6px 8px' }}
+              >Sign in</button>
+            </>
+          )}
+        </div>
+      </Panel>
 
       <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
 

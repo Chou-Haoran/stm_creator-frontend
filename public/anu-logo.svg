@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder ANU-style crest for development. Replace with official asset per brand guidelines. -->
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ANU">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#CDAE6B"/>
+      <stop offset="100%" stop-color="#A6812D"/>
+    </linearGradient>
+  </defs>
+  <rect x="30" y="30" width="140" height="140" rx="16" fill="url(#g)" stroke="#8A6A22" stroke-width="2"/>
+  <g fill="#fff" font-family="Georgia, 'Times New Roman', serif" text-anchor="middle">
+    <text x="100" y="112" font-size="56" font-weight="700">ANU</text>
+  </g>
+</svg>
+
