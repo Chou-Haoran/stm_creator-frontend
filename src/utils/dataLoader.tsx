@@ -6,16 +6,34 @@ import { API_BASE, getAuthHeader } from '../app/auth/api';
  * Loads BMRG data from the JSON file
  */
 export async function loadBMRGData(): Promise<BMRGData> {
-    try {
-        const response = await fetch('/BMRG_Rainforests.json');
-        if (!response.ok) {
-            throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+    const modelName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
+    // Try backend first if model name provided
+    if (modelName) {
+        try {
+            const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    ...getAuthHeader(),
+                },
+            });
+            if (res.ok) {
+                return await res.json();
+            }
+            if (res.status === 401 || res.status === 403) {
+                console.warn('Unauthorized to fetch model from backend; falling back to local file.');
+            } else if (res.status !== 404) {
+                console.warn(`Backend load failed (${res.status}); falling back to local file.`);
+            }
+        } catch (e) {
+            console.warn('Backend load errored; falling back to local file.', e);
         }
-        return await response.json();
-    } catch (error) {
-        console.error('Error loading BMRG data:', error);
-        throw error;
     }
+    // Fallback to bundled demo JSON
+    const response = await fetch('/BMRG_Rainforests.json');
+    if (!response.ok) {
+        throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
 }
 
 /**
