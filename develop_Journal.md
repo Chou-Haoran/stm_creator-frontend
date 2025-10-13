@@ -278,7 +278,7 @@ Added image upload functionality to the node editing modal, allowing users to at
 ---
 title: "Dev Log — Auth & Protected API Integration"
 date: "2025-10-14"
-author: "STM Creator Frontend"
+author: "Haoran Zhou"
 output: html_document
 ---
 
