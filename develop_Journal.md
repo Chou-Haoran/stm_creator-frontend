@@ -303,7 +303,7 @@ Front-end is now connected to the back-end auth flow. Login/Signup hits `/auth` 
   - `stm_creator-frontend/src/utils/dataLoader.tsx`
     - Switch save call to `POST ${API_BASE}/models/save`.
     - Auto-attach `Authorization` header via `getAuthHeader()`.
-    - Friendly messages on **401/403** (e.g., “需要 Editor/Admin 权限”).
+    - Friendly messages on **401/403** (e.g., “need Editor/Admin rights”).
 
 ## Environment & Configuration
 
