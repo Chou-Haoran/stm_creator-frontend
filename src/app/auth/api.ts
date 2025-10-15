@@ -1,4 +1,4 @@
-export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hammerhead-app-t8l9y.ondigitalocean.app';
 
 export type AuthUser = {
   id: string | number;
@@ -40,7 +40,7 @@ export async function signup(name: string, email: string, password: string, role
 async function safeError(res: Response): Promise<string | undefined> {
   try {
     const data = await res.json();
-    return (data as any)?.error;
+    return data?.error;
   } catch {
     return undefined;
   }
