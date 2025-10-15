@@ -261,6 +261,7 @@
     background: #007bff;
     color: white;
     transform: scale(1.05);
+    animation: pulse-filter 1s ease-in-out;
 }
 
 /* Specific filter types */
@@ -329,6 +330,63 @@
     }
 }
 
-.button-filter.active {
-    animation: pulse-filter 1s ease-in-out;
+/* Auth panel styles */
+.auth-panel {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    z-index: 20;
+    position: relative;
+}
+
+.auth-user-info {
+    color: #6c757d;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.auth-button {
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #fff;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.auth-button:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.auth-button.logout {
+    background: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.auth-button.logout:hover {
+    background: #c82333;
+    border-color: #bd2130;
+}
+
+.auth-button.signin {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.auth-button.signin:hover {
+    background: #0056b3;
+    border-color: #004085;
 }
