@@ -457,3 +457,71 @@ Implemented comprehensive logout functionality for the authentication system. Us
 - ✅ Guest mode displays appropriate UI elements
 - ✅ No linting errors or TypeScript warnings
 - ✅ Authentication panel styling is responsive and accessible
+
+---
+
+## Entry — Backend API Migration to Digital Ocean
+**Date:** "2025-01-27"  
+**Author:** "Edward Zhang"  
+**Branch:** `feat/logout-functionality`  
+**Status:** Completed
+
+### Summary
+Migrated the backend API endpoint from localhost development server to Digital Ocean production environment. The frontend now connects to the deployed backend at `https://hammerhead-app-t8l9y.ondigitalocean.app/` instead of the local `http://localhost:3000` endpoint.
+
+### Goals
+- Transition from local development backend to production Digital Ocean deployment
+- Update API base URL configuration to point to production environment
+- Ensure authentication and model saving functionality works with production backend
+- Maintain backward compatibility for local development scenarios
+
+### Key Changes
+- **Files:** `src/app/auth/api.ts`
+- **API Configuration:**
+  - Updated `API_BASE` default URL from `http://localhost:3000` to `https://hammerhead-app-t8l9y.ondigitalocean.app`
+  - Maintained environment variable override capability via `VITE_API_BASE_URL`
+  - Preserved existing authentication and API call patterns
+
+### Technical Implementation
+- **API Base URL:**
+  ```typescript
+  export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hammerhead-app-t8l9y.ondigitalocean.app';
+  ```
+- **Environment Configuration:**
+  - Production: Uses Digital Ocean URL by default
+  - Development: Can override with `.env` file containing `VITE_API_BASE_URL=http://localhost:3000`
+  - Maintains flexibility for different deployment scenarios
+
+### Affected Endpoints
+- **Authentication:**
+  - `POST /auth/login` → `https://hammerhead-app-t8l9y.ondigitalocean.app/auth/login`
+  - `POST /auth/signup` → `https://hammerhead-app-t8l9y.ondigitalocean.app/auth/signup`
+- **Model Operations:**
+  - `POST /models/save` → `https://hammerhead-app-t8l9y.ondigitalocean.app/models/save`
+- **All API calls now use HTTPS for secure communication**
+
+### Deployment Considerations
+- **CORS Configuration:** Backend must have CORS enabled for the frontend domain
+- **SSL/TLS:** All communication now uses HTTPS for security
+- **Environment Variables:** Local development can still use localhost via `.env` override
+- **Production Readiness:** Frontend is now configured for production deployment
+
+### Migration Benefits
+- **Security:** HTTPS encryption for all API communications
+- **Reliability:** Production-grade infrastructure on Digital Ocean
+- **Scalability:** Cloud-hosted backend can handle increased load
+- **Accessibility:** Frontend can be deployed anywhere and connect to production backend
+
+### Notes
+- Local development workflow remains unchanged with environment variable override
+- All existing authentication flows and model saving functionality preserved
+- No breaking changes to frontend API integration patterns
+- Backend deployment on Digital Ocean must be properly configured for CORS and SSL
+
+### Testing Checklist
+- ✅ Authentication endpoints connect to Digital Ocean backend
+- ✅ Model saving functionality works with production API
+- ✅ HTTPS communication established successfully
+- ✅ Local development override still functional with `.env` file
+- ✅ No CORS issues with production backend
+- ✅ JWT token handling works with production authentication
