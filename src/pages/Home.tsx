@@ -30,7 +30,7 @@ const Home = () => {
               <a href="#features" className="menu-link">Features</a>
               <a href="#how" className="menu-link">How it works</a>
               <a href="#tech" className="menu-link">Tech</a>
-              <a className="btn btn-primary" href="/login">Get Started</a>
+              <a className="btn btn-primary" href="/editor">Get Started</a>
             </div>
           </nav>
         </div>
@@ -51,7 +51,7 @@ const Home = () => {
               with metadata, query models, and persist changes straight to PostgreSQL via a robust API.
             </p>
             <div className="hero-cta">
-              <a className="btn btn-primary" href="/login" aria-label="Launch interactive demo">
+              <a className="btn btn-primary" href="/editor" aria-label="Launch interactive demo">
                 Try the demo
               </a>
               <a className="btn btn-secondary" href="#docs" aria-label="Read the documentation">
@@ -105,7 +105,7 @@ const Home = () => {
                 <li className="list-item"><strong>Persist</strong> to PostgreSQL via the API.</li>
               </ol>
               <div className="cta">
-                <a className="btn btn-primary" href="/login">Open live demo</a>
+                <a className="btn btn-primary" href="/editor">Open live demo</a>
                 <a className="btn btn-secondary" href="#docs">API docs</a>
               </div>
             </div>
@@ -164,7 +164,7 @@ Content-Type: application/json
               </p>
             </div>
             <div className="cta">
-              <a className="btn btn-primary" href="/login">Launch editor</a>
+              <a className="btn btn-primary" href="/editor">Launch editor</a>
               <a className="btn btn-secondary" href="#contact">Contact us</a>
             </div>
           </div>

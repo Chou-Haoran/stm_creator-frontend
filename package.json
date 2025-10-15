@@ -1,38 +1,40 @@
 {
-    "name":  "vite-react-flow-template",
-    "version":  "0.0.0",
-    "type":  "module",
-    "engines":  {
-                    "node":  "20.x"
-                },
-    "scripts":  {
-                    "dev":  "vite",
-                    "build":  "tsc \u0026\u0026 vite build",
-                    "start":  "serve -s dist -l ${PORT:-3000}",
-                    "heroku-postbuild":  "npm run build",
-                    "lint":  "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-                    "preview":  "vite preview",
-                    "connect-demo":  "node scripts/connect-demo.mjs"
-                },
-    "dependencies":  {
-                         "@xyflow/react":  "^12.3.6",
-                         "elkjs":  "^0.9.3",
-                         "serve":  "^14.2.3",
-                         "react":  "^18.2.0",
-                         "react-dom":  "^18.2.0",
-                         "web-worker":  "^1.5.0"
-                     },
-    "license":  "MIT",
-    "devDependencies":  {
-                            "@types/react":  "^18.2.53",
-                            "@types/react-dom":  "^18.2.18",
-                            "@typescript-eslint/eslint-plugin":  "^6.20.0",
-                            "@typescript-eslint/parser":  "^6.20.0",
-                            "@vitejs/plugin-react":  "^4.2.1",
-                            "eslint":  "^8.56.0",
-                            "eslint-plugin-react-hooks":  "^4.6.0",
-                            "eslint-plugin-react-refresh":  "^0.4.5",
-                            "typescript":  "^5.3.3",
-                            "vite":  "^5.0.12"
-                        }
+    "name": "vite-react-flow-template",
+    "version": "0.0.0",
+    "type": "module",
+    "engines": {
+        "node": "20.x"
+    },
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "start": "serve -s dist -l ${PORT:-3000}",
+        "heroku-postbuild": "npm run build",
+        "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+        "preview": "vite preview",
+        "connect-demo": "node scripts/connect-demo.mjs"
+    },
+    "dependencies": {
+        "@types/react-router-dom": "^5.3.3",
+        "@xyflow/react": "^12.3.6",
+        "elkjs": "^0.9.3",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-router-dom": "^7.9.4",
+        "serve": "^14.2.3",
+        "web-worker": "^1.5.0"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "@types/react": "^18.2.53",
+        "@types/react-dom": "^18.2.18",
+        "@typescript-eslint/eslint-plugin": "^6.20.0",
+        "@typescript-eslint/parser": "^6.20.0",
+        "@vitejs/plugin-react": "^4.2.1",
+        "eslint": "^8.56.0",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "eslint-plugin-react-refresh": "^0.4.5",
+        "typescript": "^5.3.3",
+        "vite": "^5.0.12"
+    }
 }

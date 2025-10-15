@@ -7,6 +7,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
 import './SwimlaneStyle.css';
@@ -25,8 +26,10 @@ import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
 import './extensions/extensions.css';
 import AuthPage from './app/auth/AuthPage';
 import { authStorage, type AuthUser } from './app/auth/api';
+import Home from './pages/Home';
 
-function App() {
+// Graph Editor Component
+function GraphEditor() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
     const token = authStorage.getToken();
@@ -213,6 +216,20 @@ function App() {
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
+  );
+}
+
+// Main App Component with Routing
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/editor" element={<GraphEditor />} />
+        <Route path="/login" element={<Navigate to="/editor" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 
