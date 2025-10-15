@@ -165,24 +165,33 @@ function GraphEditor() {
         />
       </ReactFlow>
 
-      {/* Simple auth indicator + logout */}
-      <Panel position="top-left" style={{ top: 8, left: 8 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {/* Authentication panel with logout functionality */}
+      <Panel position="top-right" style={{ top: 50, right: 8 }}>
+        <div className="auth-panel">
           {auth ? (
             <>
-              <span style={{ color: '#9ca3af', fontSize: 12 }}>Signed in as {auth.user.email}</span>
+              <span className="auth-user-info">Signed in as {auth.user.email}</span>
               <button
-                onClick={() => { authStorage.clear(); setAuth(null); }}
-                style={{ fontSize: 12, padding: '6px 8px' }}
-              >Logout</button>
+                className="auth-button logout"
+                onClick={() => { 
+                  authStorage.clear(); 
+                  setAuth(null); 
+                }}
+                title="Logout from your account"
+              >
+                Logout
+              </button>
             </>
           ) : (
             <>
-              <span style={{ color: '#9ca3af', fontSize: 12 }}>Guest mode</span>
+              <span className="auth-user-info">Guest mode</span>
               <button
+                className="auth-button signin"
                 onClick={() => { setIsGuest(false); }}
-                style={{ fontSize: 12, padding: '6px 8px' }}
-              >Sign in</button>
+                title="Sign in to your account"
+              >
+                Sign in
+              </button>
             </>
           )}
         </div>
