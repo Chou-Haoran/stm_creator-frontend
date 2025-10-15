@@ -14,8 +14,8 @@ export default function AuthPage({ onAuthenticated, onContinueGuest }: Props) {
       <div style={hero}>
         {hasLogo ? (
           <img
-            src="/anu-logo.svg"
-            alt="ANU logo"
+            src="/tern.png"
+            alt="TERN logo"
             style={logoImg}
             onError={() => setHasLogo(false)}
           />
