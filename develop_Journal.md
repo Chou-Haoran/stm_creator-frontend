@@ -398,3 +398,62 @@ curl -i -X POST http://localhost:3000/models/save \
 * ✅ Protected save at `POST /models/save`.
 * ✅ Roles aligned (Viewer/Editor/Admin); friendly 401/403 messages.
 * ⚠️ Requires Editor/Admin for Save; Viewer is read-only.
+
+---
+
+## Entry — Logout Functionality
+**Date:** "2025-01-27"  
+**Author:** "Edward Zhang"  
+**Branch:** `feat/logout-functionality`  
+**Status:** Completed
+
+### Summary
+Implemented comprehensive logout functionality for the authentication system. Users can now securely log out from their accounts, clearing all stored authentication data and returning to the login screen. The feature includes proper UI feedback and state management.
+
+### Goals
+- Provide secure logout mechanism that clears all authentication data
+- Implement intuitive UI controls for logout action
+- Ensure proper state management and user feedback
+- Maintain clean separation between authenticated and guest modes
+
+### Key Changes
+- **Files:** `src/App.tsx`, `src/App.css`, `src/app/auth/api.ts`
+- **Features:**
+  - Added logout button in authentication panel (top-right corner)
+  - Implemented `authStorage.clear()` to remove JWT token and user data from localStorage
+  - Added state reset functionality to return user to login screen
+  - Enhanced authentication panel with clear user status display
+- **UI/UX:**
+  - Red logout button with hover effects for clear visual indication
+  - User email display when authenticated ("Signed in as user@example.com")
+  - Guest mode indicator with sign-in option
+  - Responsive authentication panel with proper styling
+- **Code Quality:**
+  - Fixed TypeScript linting warning in auth API (`safeError` function)
+  - Maintained existing authentication flow integrity
+  - Proper error handling and state management
+
+### Technical Implementation
+- **Logout Flow:**
+  1. User clicks logout button
+  2. `authStorage.clear()` removes token and user data from localStorage
+  3. `setAuth(null)` resets authentication state
+  4. App automatically redirects to login screen
+- **Authentication Panel:**
+  - Positioned in top-right corner using ReactFlow Panel component
+  - Shows different UI based on authentication state
+  - Includes proper styling with backdrop blur and shadow effects
+
+### Notes
+- Logout functionality is fully client-side and doesn't require backend API calls
+- Authentication state is properly managed through React state and localStorage
+- UI provides clear visual feedback for both authenticated and guest modes
+- Feature maintains compatibility with existing authentication system
+
+### Testing Checklist
+- ✅ Logout button appears when user is authenticated
+- ✅ Clicking logout clears localStorage and resets auth state
+- ✅ User is redirected to login screen after logout
+- ✅ Guest mode displays appropriate UI elements
+- ✅ No linting errors or TypeScript warnings
+- ✅ Authentication panel styling is responsive and accessible
