@@ -68,6 +68,7 @@ function GraphEditor() {
     handleSaveTransition,
     handleSaveModel,
     handleReLayout,
+    applyLayout,
     toggleEdgeCreationMode,
     loadExistingEdges,
     toggleSelfTransitions,
@@ -104,6 +105,7 @@ function GraphEditor() {
         onToggleEdgeCreation={toggleEdgeCreationMode}
         onLoadEdges={loadExistingEdges}
         onSaveModel={handleSaveModel}
+        onApplyLayout={applyLayout}
         onSaveVersion={saveCurrentVersion}
         onOpenVersionManager={openVersionManager}
         onImportEKS={importFromEKS}
@@ -115,6 +117,10 @@ function GraphEditor() {
         showSelfTransitions={showSelfTransitions}
         bmrgData={bmrgData}
         onOpenHelp={() => setIsHelpOpen(true)}
+        userEmail={auth?.user.email ?? null}
+        isGuest={isGuest}
+        onLogout={() => { authStorage.clear(); setAuth(null); setIsGuest(false); }}
+        onSignIn={() => { setIsGuest(false); }}
       />
 
       <ReactFlow
@@ -165,37 +171,7 @@ function GraphEditor() {
         />
       </ReactFlow>
 
-      {/* Authentication panel with logout functionality */}
-      <Panel position="top-right" style={{ top: 50, right: 8 }}>
-        <div className="auth-panel">
-          {auth ? (
-            <>
-              <span className="auth-user-info">Signed in as {auth.user.email}</span>
-              <button
-                className="auth-button logout"
-                onClick={() => { 
-                  authStorage.clear(); 
-                  setAuth(null); 
-                }}
-                title="Logout from your account"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="auth-user-info">Guest mode</span>
-              <button
-                className="auth-button signin"
-                onClick={() => { setIsGuest(false); }}
-                title="Sign in to your account"
-              >
-                Sign in
-              </button>
-            </>
-          )}
-        </div>
-      </Panel>
+      {/* Identity moved into toolbar */}
 
       <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
 

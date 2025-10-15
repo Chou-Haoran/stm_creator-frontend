@@ -12,6 +12,7 @@ import {
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode } from '../../nodes/types';
 import { BMRGData, TransitionData } from '../../utils/stateTransition';
+import type { LayoutStrategy } from '../../utils/layoutStrategies';
 import { DeltaFilterOption, GraphModelVersion } from '../types';
 
 export interface UseGraphEditorResult {
@@ -45,6 +46,7 @@ export interface UseGraphEditorResult {
     handleSaveTransition: (transition: TransitionData) => void;
     handleSaveModel: () => Promise<void>;
     handleReLayout: () => void;
+    applyLayout?: (strategy: LayoutStrategy) => Promise<void> | void;
     toggleEdgeCreationMode: () => void;
     loadExistingEdges: () => void;
     toggleSelfTransitions: () => void;

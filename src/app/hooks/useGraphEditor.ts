@@ -14,6 +14,7 @@ import { createFilterActions } from './graphFilters';
 import { createModelActions } from './graphModel';
 import { createImportExportActions } from './graphImportExport';
 import { createVersionActions } from './graphVersions';
+import { createLayoutActions } from './graphLayout';
 
 export function useGraphEditor(): UseGraphEditorResult {
     const state = useGraphBaseState();
@@ -107,6 +108,11 @@ export function useGraphEditor(): UseGraphEditorResult {
         statesToNodes,
     });
 
+    const layoutActions = createLayoutActions({
+        getData: () => state.bmrgData,
+        setNodes: state.setNodes,
+    });
+
     useEffect(() => {
         modelActions.initialise();
         versionActions.initialise();
@@ -176,6 +182,7 @@ export function useGraphEditor(): UseGraphEditorResult {
         handleSaveTransition,
         handleSaveModel: modelActions.handleSaveModel,
         handleReLayout: modelActions.handleReLayout,
+        applyLayout: layoutActions.applyLayout,
         toggleEdgeCreationMode: nodeHandlers.toggleEdgeCreationMode,
         loadExistingEdges: filterActions.loadExistingEdges,
         toggleSelfTransitions: filterActions.toggleSelfTransitions,
