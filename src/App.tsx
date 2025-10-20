@@ -27,6 +27,7 @@ import './extensions/extensions.css';
 import AuthPage from './app/auth/AuthPage';
 import { authStorage, type AuthUser } from './app/auth/api';
 import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 
 // Graph Editor Component
 function GraphEditor() {
@@ -212,7 +213,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/editor" element={<GraphEditor />} />
         <Route path="/login" element={<Navigate to="/editor" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/notfound" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/notfound" replace />} />
       </Routes>
     </Router>
   );
