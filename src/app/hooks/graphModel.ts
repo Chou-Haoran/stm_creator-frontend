@@ -56,16 +56,14 @@ export function createModelActions({
     const handleSaveModel = async (): Promise<SaveModelResponse> => {
         const data = getData();
         if (!data) {
-            const error = new Error('No model data is currently loaded.');
-            setError('Nothing to save – load or create a model first.');
-            throw error;
+            alert('Nothing to save – load or create a model first.');
+            throw new Error('No model data is currently loaded.');
         }
 
         const token = authStorage.getToken();
         if (!token) {
-            const error = new Error('Missing authentication token.');
-            setError('You must be signed in with save permissions to store models.');
-            throw error;
+            alert('You must be signed in with save permissions to store models.');
+            throw new Error('Missing authentication token.');
         }
 
         setIsSaving(true);
@@ -83,28 +81,26 @@ export function createModelActions({
 
             if (response.status === 401 || response.status === 403) {
                 const message = await extractErrorMessage(response) || 'Your session has expired or you do not have permission to save.';
-                setError(message);
+                alert(message);
                 throw new Error(message);
             }
 
             if (response.status >= 500) {
                 const message = await extractErrorMessage(response) || 'The server encountered an unexpected error while saving.';
-                setError(message);
+                alert(message);
                 throw new Error(message);
             }
 
             if (!response.ok) {
                 const message = await extractErrorMessage(response) || `Failed to save model (${response.status}).`;
-                setError(message);
+                alert(message);
                 throw new Error(message);
             }
 
             const payload = (await response.json()) as SaveModelResponse;
-            setError(null);
             return payload;
         } catch (err) {
             console.error('Failed to save model:', err);
-            setError((prev) => prev ?? 'Unable to save the model. Please try again.');
             throw err;
         } finally {
             setIsSaving(false);
