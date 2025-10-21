@@ -1,4 +1,10 @@
-import { BMRGData, TransitionData } from './stateTransition';
+import {
+  BMRGData,
+  TransitionData,
+  StateData,
+  hasFrontendStateId,
+  hasPersistedStateId,
+} from './stateTransition';
 import { API_BASE, getAuthHeader } from '../app/auth/api';
 
 function getModelName(): string | undefined {
@@ -84,13 +90,14 @@ export async function loadBMRGData(): Promise<BMRGData> {
 
 // Save the updated BMRG data back to the server
 export async function saveBMRGData(data: BMRGData): Promise<boolean> {
+  const payload = prepareSavePayload(data);
   const res = await fetch(`${API_BASE}/models/save`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeader(),
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (res.status === 401 || res.status === 403) {
     alert('需要 Editor/Admin 权限并登录后才能保存到服务器。');
@@ -104,6 +111,29 @@ export async function saveBMRGData(data: BMRGData): Promise<boolean> {
     if (data?.stm_name) localStorage.setItem('stmCreator.lastModelName', data.stm_name);
   } catch {}
   return true;
+}
+
+export function prepareSavePayload(data: BMRGData): BMRGData {
+  const states: StateData[] = data.states.map((state) => {
+    const cleaned: StateData = { ...state };
+
+    if (hasPersistedStateId(state)) {
+      delete cleaned.frontend_state_id;
+    } else {
+      if (!hasFrontendStateId(state)) {
+        throw new Error('New states must include frontend_state_id before saving.');
+      }
+      delete cleaned.state_id;
+    }
+
+    return cleaned;
+  });
+
+  return {
+    ...data,
+    states,
+    transitions: data.transitions.map((transition) => ({ ...transition })),
+  };
 }
 
 async function safeError(res: Response): Promise<string | undefined> {

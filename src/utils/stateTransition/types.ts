@@ -1,5 +1,5 @@
 export interface StateData {
-    state_id: number;
+    state_id?: number;
     frontend_state_id?: number;
     state_name: string;
     vast_state: {

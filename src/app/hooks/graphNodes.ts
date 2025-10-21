@@ -15,7 +15,7 @@ import {
     updateBmrgStateName,
     updateNodeLabel,
 } from './graphMutations';
-import { nextId, parseStateId } from './graph-utils';
+import { nextFrontendStateId, parseStateId } from './graph-utils';
 
 interface Dependencies {
     getNodes: () => AppNode[];
@@ -113,7 +113,7 @@ export function createNodeHandlers({
                     return prev;
                 }
 
-                const nextStateId = nextId(prev.states.map((state) => state.state_id));
+                const nextStateId = nextFrontendStateId(prev.states);
                 const newState = buildStateFromAttributes(attributes, nextStateId);
                 return addStateToBmrg(prev, newState);
             });

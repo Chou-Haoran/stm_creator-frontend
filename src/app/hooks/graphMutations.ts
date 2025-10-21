@@ -3,7 +3,7 @@ import { Edge } from '@xyflow/react';
 
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode, CustomNodeData } from '../../nodes/types';
-import { BMRGData, StateData, TransitionData } from '../../utils/stateTransition';
+import { BMRGData, StateData, TransitionData, getGraphStateId } from '../../utils/stateTransition';
 
 export function updateNodeLabel(nodes: AppNode[], nodeId: string, newLabel: string): AppNode[] {
     return nodes.map((node) => {
@@ -110,7 +110,7 @@ export function updateBmrgStateName(
     attributes: NodeAttributes,
 ): BMRGData {
     const states = data.states.map((state) => {
-        if (state.state_id !== stateId) {
+        if (getGraphStateId(state) !== stateId) {
             return state;
         }
 
@@ -140,7 +140,7 @@ export function buildStateFromAttributes(
     newStateId: number,
 ): StateData {
     return {
-        state_id: newStateId,
+        frontend_state_id: newStateId,
         state_name: attributes.stateName,
         vast_state: {
             vast_class: attributes.vastClass,
@@ -171,7 +171,8 @@ export function buildStateNameMap(data: BMRGData | null): Record<number, string>
     }
 
     return data.states.reduce<Record<number, string>>((map, state) => {
-        map[state.state_id] = state.state_name;
+        const id = getGraphStateId(state);
+        map[id] = state.state_name;
         return map;
     }, {});
 }

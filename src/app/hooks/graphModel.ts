@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
 
-import { loadBMRGData } from '../../utils/dataLoader';
+import { loadBMRGData, prepareSavePayload } from '../../utils/dataLoader';
 import { BMRGData, statesToNodes } from '../../utils/stateTransition';
 import { API_BASE, authStorage } from '../auth/api';
 import { AppNode } from '../../nodes/types';
@@ -70,12 +70,7 @@ export function createModelActions({
         setIsSaving(true);
 
         try {
-            // Normalize payload to avoid common backend rejects
-            const payload = { ...data } as any;
-            if (payload.region_id == null || Number(payload.region_id) <= 0) {
-                payload.region_id = null;
-            }
-
+            const payload = prepareSavePayload(data);
             const response = await fetch(`${API_BASE}/models/save`, {
                 method: 'POST',
                 headers: {
@@ -105,10 +100,22 @@ export function createModelActions({
             }
 
             const result = (await response.json()) as SaveModelResponse;
-            // Persist returned modelId back to local state so subsequent saves update instead of insert
-            if (result && typeof result.modelId === 'number') {
-                setData((prev) => (prev ? { ...prev, id: result.modelId as number } : prev));
+
+            // Refresh data after successful save to ensure consistency
+            try {
+                const refreshed = await loadBMRGData();
+                setData(refreshed);
+                const nodes = statesToNodes(
+                    refreshed.states,
+                    handleNodeLabelChange,
+                    handleNodeClick,
+                    refreshed.transitions,
+                );
+                setNodes(nodes);
+            } catch (error_) {
+                console.warn('Model saved but failed to refresh latest data', error_);
             }
+
             return result;
         } catch (err) {
             console.error('Failed to save model:', err);

@@ -4,7 +4,7 @@ import { Edge, EdgeChange, EdgeMouseHandler, applyEdgeChanges } from '@xyflow/re
 
 import { TransitionData, BMRGData } from '../../utils/stateTransition';
 import { updateTransition } from '../../utils/dataLoader';
-import { parseStateId, nextId } from './graph-utils';
+import { parseStateId, nextId, findStateByGraphId, getGraphStateId } from './graph-utils';
 
 interface BaseDeps {
     getData: () => BMRGData | null;
@@ -40,8 +40,8 @@ export function createTransitionCreator({
                 return prev;
             }
 
-            const sourceState = prevData.states.find((state) => state.state_id === sourceStateId);
-            const targetState = prevData.states.find((state) => state.state_id === targetStateId);
+            const sourceState = findStateByGraphId(prevData.states, sourceStateId);
+            const targetState = findStateByGraphId(prevData.states, targetStateId);
             if (!sourceState || !targetState) {
                 return prev;
             }
@@ -50,9 +50,9 @@ export function createTransitionCreator({
                 transition_id: nextId(prevData.transitions.map((item) => item.transition_id)),
                 stm_name: prevData.stm_name,
                 start_state: sourceState.state_name,
-                start_state_id: sourceStateId,
+                start_state_id: getGraphStateId(sourceState),
                 end_state: targetState.state_name,
-                end_state_id: targetStateId,
+                end_state_id: getGraphStateId(targetState),
                 time_25: 1,
                 time_100: 0,
                 likelihood_25: 1,

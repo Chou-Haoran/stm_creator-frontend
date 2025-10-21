@@ -3,6 +3,7 @@ import { NodeAttributes } from '../../nodes/nodeModal';
 
 import { optimizeNodeLayout } from './layout';
 import { StateData, TransitionData } from './types';
+import { getGraphStateId } from './helpers';
 
 function getConditionString(state: StateData): string {
     if (state.condition_upper === -9999 || state.condition_lower === -9999) {
@@ -12,9 +13,10 @@ function getConditionString(state: StateData): string {
 }
 
 function stateToNodeAttributes(state: StateData): NodeAttributes {
+    const id = getGraphStateId(state);
     return {
         stateName: state.state_name,
-        stateNumber: state.state_id.toString(),
+        stateNumber: id.toString(),
         vastClass: state.vast_state.vast_class,
         condition: getConditionString(state),
         imageUrl: state.attributes?.imageUrl ?? '',
@@ -31,10 +33,11 @@ export function statesToNodes(
     const positions = optimizeNodeLayout(states, transitions);
 
     return states.map((state) => {
-        const position = positions.get(state.state_id) ?? { x: 0, y: 0 };
+        const graphId = getGraphStateId(state);
+        const position = positions.get(graphId) ?? { x: 0, y: 0 };
 
         return {
-            id: `state-${state.state_id}`,
+            id: `state-${graphId}`,
             type: 'custom',
             position,
             data: {

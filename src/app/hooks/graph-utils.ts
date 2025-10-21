@@ -3,7 +3,9 @@ import { Edge } from '@xyflow/react';
 
 import { AppNode } from '../../nodes/types';
 import { DeltaFilterOption } from '../types';
-import { TransitionData } from '../../utils/stateTransition';
+import { TransitionData, collectAllStateIds } from '../../utils/stateTransition';
+
+export { findStateByGraphId, getGraphStateId } from '../../utils/stateTransition';
 
 export function parseStateId(nodeId: string): number | null {
     if (!nodeId.startsWith('state-')) {
@@ -19,6 +21,11 @@ export function nextId(values: number[]): number {
         return 1;
     }
     return Math.max(...values) + 1;
+}
+
+export function nextFrontendStateId(states: Parameters<typeof collectAllStateIds>[0]): number {
+    const existing = collectAllStateIds(states);
+    return nextId(existing);
 }
 
 export function filterEdgesByDelta(
