@@ -1,88 +1,102 @@
-
 import { BMRGData, TransitionData } from './stateTransition';
 import { API_BASE, getAuthHeader } from '../app/auth/api';
 
-/**
- * Loads BMRG data from the JSON file
- */
-export async function loadBMRGData(): Promise<BMRGData> {
-    const modelName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
-    // Try backend first if model name provided
-    if (modelName) {
-        try {
-            const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    ...getAuthHeader(),
-                },
-            });
-            if (res.ok) {
-                return await res.json();
-            }
-            if (res.status === 401 || res.status === 403) {
-                console.warn('Unauthorized to fetch model from backend; falling back to local file.');
-            } else if (res.status !== 404) {
-                console.warn(`Backend load failed (${res.status}); falling back to local file.`);
-            }
-        } catch (e) {
-            console.warn('Backend load errored; falling back to local file.', e);
-        }
-    }
-    // Fallback to bundled demo JSON
-    const response = await fetch('/BMRG_Rainforests.json');
-    if (!response.ok) {
-        throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
-    }
-    return await response.json();
+function getModelName(): string | undefined {
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    const q = qs.get('model')?.trim();
+    if (q) return q;
+  } catch {}
+  const envName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
+  if (envName && envName.trim()) return envName.trim();
+  try {
+    const last = localStorage.getItem('stmCreator.lastModelName');
+    if (last && last.trim()) return last.trim();
+  } catch {}
+  return undefined;
 }
 
-/**
- * Saves the updated BMRG data back to the server
- */
+// Always load from backend; require a model name from URL/env/last saved
+export async function loadBMRGData(): Promise<BMRGData> {
+  const modelName = getModelName();
+  if (!modelName) {
+    throw new Error('No model specified. Add ?model= in URL or set VITE_MODEL_NAME.');
+  }
+  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
+    headers: { Accept: 'application/json', ...getAuthHeader() },
+  });
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('Unauthorized to load model. Please sign in.');
+  }
+  if (res.status === 404) {
+    throw new Error(`Model not found: ${modelName}`);
+  }
+  if (!res.ok) {
+    const msg = await safeError(res);
+    throw new Error(msg || `Backend load failed (${res.status})`);
+  }
+  const data = (await res.json()) as BMRGData;
+  try {
+    localStorage.setItem('stmCreator.lastModelName', modelName);
+  } catch {}
+  return data;
+}
+
+// Save the updated BMRG data back to the server
 export async function saveBMRGData(data: BMRGData): Promise<boolean> {
-    try {
-        const res = await fetch(`${API_BASE}/models/save`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeader(),
-            },
-            body: JSON.stringify(data),
-        });
-        if (res.status === 401 || res.status === 403) {
-            alert('需要具备 Editor/Admin 权限并登录后才能保存到服务器。您当前的账户或游客模式没有权限。');
-            return false;
-        }
-        if (!res.ok) {
-            const msg = await safeError(res);
-            throw new Error(msg || `Failed to save data: ${res.status} ${res.statusText}`);
-        }
-        return true;
-    } catch (error) {
-        console.error('Error saving BMRG data:', error);
-        throw error;
-    }
+  const res = await fetch(`${API_BASE}/models/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(data),
+  });
+  if (res.status === 401 || res.status === 403) {
+    alert('需要 Editor/Admin 权限并登录后才能保存到服务器。');
+    return false;
+  }
+  if (!res.ok) {
+    const msg = await safeError(res);
+    throw new Error(msg || `Failed to save data: ${res.status} ${res.statusText}`);
+  }
+  try {
+    if (data?.stm_name) localStorage.setItem('stmCreator.lastModelName', data.stm_name);
+  } catch {}
+  return true;
 }
 
 async function safeError(res: Response): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    let data: any;
     try {
-        const data = await res.json();
-        return (data as any)?.error || (data as any)?.message;
+      data = JSON.parse(text);
     } catch {
-        return undefined;
+      return text?.trim() || undefined;
     }
+    const err = data?.error ?? data;
+    if (typeof err === 'string') return err;
+    if (typeof err?.message === 'string') return err.message;
+    const details = err?.details ?? data?.details;
+    if (Array.isArray(details) && details.length) {
+      const first: any = details[0];
+      const msg = typeof first?.message === 'string' ? first.message : undefined;
+      const path = typeof first?.path === 'string' ? first.path : undefined;
+      return msg && path ? `${path}: ${msg}` : msg;
+    }
+    if (typeof data?.message === 'string') return data.message;
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-/**
- * Updates a specific transition in the BMRG data
- */
 export function updateTransition(data: BMRGData, updatedTransition: TransitionData): BMRGData {
-    return {
-        ...data,
-        transitions: data.transitions.map(transition =>
-            transition.transition_id === updatedTransition.transition_id
-                ? updatedTransition
-                : transition
-        )
-    };
+  return {
+    ...data,
+    transitions: data.transitions.map((transition) =>
+      transition.transition_id === updatedTransition.transition_id ? updatedTransition : transition
+    ),
+  };
 }
