@@ -1,8 +1,8 @@
-
 import { Dispatch, SetStateAction } from 'react';
 
-import { loadBMRGData, saveBMRGData } from '../../utils/dataLoader';
+import { loadBMRGData } from '../../utils/dataLoader';
 import { BMRGData, statesToNodes } from '../../utils/stateTransition';
+import { API_BASE, authStorage } from '../auth/api';
 import { AppNode } from '../../nodes/types';
 
 interface ModelDeps {
@@ -14,6 +14,13 @@ interface ModelDeps {
     setError: Dispatch<SetStateAction<string | null>>;
     setIsLoading: Dispatch<SetStateAction<boolean>>;
     setData: Dispatch<SetStateAction<BMRGData | null>>;
+}
+
+export interface SaveModelResponse {
+    success: boolean;
+    modelId: unknown;
+    message?: string;
+    [key: string]: unknown;
 }
 
 export function createModelActions({
@@ -46,18 +53,55 @@ export function createModelActions({
         }
     };
 
-    const handleSaveModel = async () => {
+    const handleSaveModel = async (): Promise<SaveModelResponse> => {
         const data = getData();
         if (!data) {
-            return;
+            alert('Nothing to save – load or create a model first.');
+            throw new Error('No model data is currently loaded.');
         }
 
+        const token = authStorage.getToken();
+        if (!token) {
+            alert('You must be signed in with save permissions to store models.');
+            throw new Error('Missing authentication token.');
+        }
+
+        setIsSaving(true);
+
         try {
-            setIsSaving(true);
-            await saveBMRGData(data);
+            const response = await fetch(`${API_BASE}/models/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                const message = await extractErrorMessage(response) || 'Your session has expired or you do not have permission to save.';
+                alert(message);
+                throw new Error(message);
+            }
+
+            if (response.status >= 500) {
+                const message = await extractErrorMessage(response) || 'The server encountered an unexpected error while saving.';
+                alert(message);
+                throw new Error(message);
+            }
+
+            if (!response.ok) {
+                const message = await extractErrorMessage(response) || `Failed to save model (${response.status}).`;
+                alert(message);
+                throw new Error(message);
+            }
+
+            const payload = (await response.json()) as SaveModelResponse;
+            return payload;
         } catch (err) {
             console.error('Failed to save model:', err);
-            alert('Failed to save the model. See console for details.');
+            throw err;
         } finally {
             setIsSaving(false);
         }
@@ -79,4 +123,17 @@ export function createModelActions({
     };
 
     return { initialise, handleSaveModel, handleReLayout };
+}
+
+async function extractErrorMessage(response: Response): Promise<string | undefined> {
+    try {
+        const data = await response.json();
+        if (data && typeof data === 'object') {
+            const candidate = (data as Record<string, unknown>).message ?? (data as Record<string, unknown>).error;
+            return typeof candidate === 'string' ? candidate : undefined;
+        }
+        return undefined;
+    } catch {
+        return undefined;
+    }
 }

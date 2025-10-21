@@ -525,3 +525,63 @@ Migrated the backend API endpoint from localhost development server to Digital O
 - ✅ Local development override still functional with `.env` file
 - ✅ No CORS issues with production backend
 - ✅ JWT token handling works with production authentication
+
+---
+
+## Entry — Save Model API Integration
+**Date:** "2025-10-21"  
+**Author:** "Xinyu Zhang"  
+**Branch:** `feat/connect-API-of-Save-STM-Model`  
+**Status:** Completed
+
+### Summary
+Integrated the Save Model workflow with the authenticated backend API. Login now persists JWTs under two keys for backward compatibility, the save handler posts directly to `${API_BASE}/models/save`, and the UI/typing layers propagate the typed response while guarding against accidental double invocation.
+
+### Goals
+- Persist the session token in a way that works with legacy and new consumers.
+- Issue an authenticated `POST` to the Save Model endpoint and surface backend errors clearly.
+- Restrict the API call to the dedicated “Save Model” control with a typed promise contract.
+- Align STM domain types with optional identifiers expected by the backend contract.
+
+### Key Changes
+- **Files:** `src/app/auth/api.ts`
+  - Store JWT in both `auth.token` and `token` keys and read from either to support older code paths.
+  - Keep the `API_BASE` environment override while preserving the production fallback URL.
+- **Files:** `src/app/hooks/graphModel.ts`
+  - Replace the previous loader helper with a direct `fetch` to `${API_BASE}/models/save` that includes `Authorization: Bearer <token>`.
+  - Added `SaveModelResponse` typing plus status-specific error handling (401/403, ≥500, other non-OK) with message extraction.
+- **Files:** `src/app/components/GraphToolbar.tsx`
+  - Updated `onSaveModel` signature to return `Promise<SaveModelResponse>` and wrapped the click handler to swallow rejected promises, ensuring only this button triggers the call.
+- **Files:** `src/app/hooks/useGraphEditor.types.ts`, `src/utils/stateTransition/types.ts`
+  - Propagate the new save response type through the hook API and extend STM types with optional `id`/`frontend_state_id` fields used by the backend.
+
+### Technical Implementation
+- **Authentication Storage:**
+  ```typescript
+  localStorage.setItem('auth.token', auth.token);
+  localStorage.setItem('token', auth.token);
+  // ...
+  return localStorage.getItem('auth.token') || localStorage.getItem('token');
+  ```
+- **Save Request:**
+  ```typescript
+  const response = await fetch(`${API_BASE}/models/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  ```
+  - Dedicated guards for `401/403`, `response.status >= 500`, and other non-OK statuses, with `extractErrorMessage` extracting backend details.
+- **UI Guardrails:** Button handler wraps `onSaveModel` in `void … .catch(() => undefined)` so unresolved promises do not cascade through the UI.
+- **Domain Types:** Added optional identifiers to `BMRGData`, `StateData`, and `TransitionData` to match backend update payloads.
+
+### Testing Checklist
+- ☐ Login flow persists JWT under both keys and exposes it via `authStorage.getToken()`.
+- ☐ “Save Model” issues a `POST` to `${API_BASE}/models/save` with the serialized `BMRGData` payload.
+- ☐ 401/403 responses surface authorization messaging in the UI.
+- ☐ 500+ responses surface server error messaging in the UI.
+- ☐ Happy-path save returns the parsed `SaveModelResponse` to callers.

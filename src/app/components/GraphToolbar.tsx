@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
 
 import { BMRGData } from '../../utils/stateTransition';
+import type { SaveModelResponse } from '../hooks/graphModel';
 import type { LayoutStrategy } from '../../utils/layoutStrategies';
 
 interface GraphToolbarProps {
   readonly onAddNode: () => void;
   readonly onToggleEdgeCreation: () => void;
   readonly onLoadEdges: () => void;
-  readonly onSaveModel: () => void | Promise<void>;
+  readonly onSaveModel: () => Promise<SaveModelResponse>;
   readonly onSaveVersion: () => void;
   readonly onOpenVersionManager: () => void;
   readonly onImportEKS: (file: File) => void | Promise<void>;
@@ -91,7 +92,9 @@ export function GraphToolbar({
       </button>
 
       <button
-        onClick={onSaveModel}
+        onClick={() => {
+          void onSaveModel().catch(() => undefined);
+        }}
         disabled={isSaving}
         className={`button button-success ${isSaving ? 'button-disabled' : ''}`}
       >

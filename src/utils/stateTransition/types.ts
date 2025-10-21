@@ -1,5 +1,6 @@
 export interface StateData {
     state_id: number;
+    frontend_state_id?: number;
     state_name: string;
     vast_state: {
         vast_class: string;
@@ -19,6 +20,7 @@ export interface StateData {
 
 export interface TransitionData {
     transition_id: number;
+    id?: number;
     stm_name: string;
     start_state: string;
     start_state_id: number;
@@ -34,6 +36,7 @@ export interface TransitionData {
 }
 
 export interface BMRGData {
+    id?: number;
     stm_name: string;
     version: string;
     release_date: string;

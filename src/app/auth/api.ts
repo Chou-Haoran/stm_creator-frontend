@@ -49,14 +49,16 @@ async function safeError(res: Response): Promise<string | undefined> {
 export const authStorage = {
   save(auth: AuthResponse) {
     localStorage.setItem('auth.token', auth.token);
+    localStorage.setItem('token', auth.token);
     localStorage.setItem('auth.user', JSON.stringify(auth.user));
   },
   clear() {
     localStorage.removeItem('auth.token');
+    localStorage.removeItem('token');
     localStorage.removeItem('auth.user');
   },
   getToken(): string | null {
-    return localStorage.getItem('auth.token');
+    return localStorage.getItem('auth.token') || localStorage.getItem('token');
   },
   getUser(): AuthUser | null {
     const raw = localStorage.getItem('auth.user');
