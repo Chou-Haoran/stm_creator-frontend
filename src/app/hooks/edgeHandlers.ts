@@ -5,7 +5,7 @@ import { AppNode } from '../../nodes/types';
 import { TransitionData, BMRGData, transitionsToEdges } from '../../utils/stateTransition';
 import { updateTransition } from '../../utils/dataLoader';
 import { DeltaFilterOption } from '../types';
-import { filterEdgesByDelta, nextId, parseStateId } from './graph-utils';
+import { filterEdgesByDelta, nextId, parseStateId, findStateByGraphId, getGraphStateId } from './graph-utils';
 
 interface TransitionCreatorDeps {
     bmrgData: () => BMRGData | null;
@@ -36,8 +36,8 @@ export function createTransitionCreator({
             return;
         }
 
-        const sourceState = data.states.find((state) => state.state_id === sourceStateId);
-        const targetState = data.states.find((state) => state.state_id === targetStateId);
+        const sourceState = findStateByGraphId(data.states, sourceStateId);
+        const targetState = findStateByGraphId(data.states, targetStateId);
         if (!sourceState || !targetState) {
             return;
         }
@@ -48,9 +48,9 @@ export function createTransitionCreator({
             transition_id: newTransitionId,
             stm_name: data.stm_name,
             start_state: sourceState.state_name,
-            start_state_id: sourceStateId,
+            start_state_id: getGraphStateId(sourceState),
             end_state: targetState.state_name,
-            end_state_id: targetStateId,
+            end_state_id: getGraphStateId(targetState),
             time_25: 1,
             time_100: 0,
             likelihood_25: 1,

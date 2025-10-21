@@ -1,4 +1,4 @@
-import { BMRGData, StateData, TransitionData } from './stateTransition';
+import { BMRGData, StateData, TransitionData, getGraphStateId } from './stateTransition';
 
 export interface EKSState {
     id: number;
@@ -30,7 +30,7 @@ export interface EKSModel {
 
 export function toEKSModel(data: BMRGData): EKSModel {
     const states: EKSState[] = data.states.map((state) => ({
-        id: state.state_id,
+        id: getGraphStateId(state),
         name: state.state_name,
         condition: {
             lower: state.condition_lower,
@@ -104,7 +104,8 @@ export function fromEKSModel(model: EKSModel): BMRGData {
     });
 
     const stateNameMap = states.reduce<Record<number, string>>((acc, state) => {
-        acc[state.state_id] = state.state_name;
+        const key = getGraphStateId(state);
+        acc[key] = state.state_name;
         return acc;
     }, {});
 

@@ -1,4 +1,5 @@
 import { StateData, TransitionData } from './types';
+import { getGraphStateId } from './helpers';
 
 const CLASS_ORDER: Record<string, number> = {
     'Class I': 1,
@@ -40,7 +41,8 @@ export function optimizeNodeLayout(
     >();
 
     states.forEach((state) => {
-        connectionWeights.set(state.state_id, { inbound: 0, outbound: 0, total: 0 });
+        const id = getGraphStateId(state);
+        connectionWeights.set(id, { inbound: 0, outbound: 0, total: 0 });
     });
 
     transitions
@@ -85,8 +87,8 @@ export function optimizeNodeLayout(
         }
 
         classStates.sort((a, b) => {
-            const weightA = connectionWeights.get(a.state_id)?.total ?? 0;
-            const weightB = connectionWeights.get(b.state_id)?.total ?? 0;
+            const weightA = connectionWeights.get(getGraphStateId(a))?.total ?? 0;
+            const weightB = connectionWeights.get(getGraphStateId(b))?.total ?? 0;
             return weightB - weightA;
         });
 
@@ -97,8 +99,9 @@ export function optimizeNodeLayout(
         );
         if (referenceStateIndex >= 0) {
             const referenceState = classStates[referenceStateIndex];
-            positions.set(referenceState.state_id, { x, y: 50 });
-            specialStates.add(referenceState.state_id);
+            const refId = getGraphStateId(referenceState);
+            positions.set(refId, { x, y: 50 });
+            specialStates.add(refId);
         }
 
         const removedStateIndex = classStates.findIndex(
@@ -106,8 +109,9 @@ export function optimizeNodeLayout(
         );
         if (removedStateIndex >= 0) {
             const removedState = classStates[removedStateIndex];
-            positions.set(removedState.state_id, { x, y: 600 });
-            specialStates.add(removedState.state_id);
+            const removedId = getGraphStateId(removedState);
+            positions.set(removedId, { x, y: 600 });
+            specialStates.add(removedId);
         }
 
         const croppingStateIndex = classStates.findIndex((state) =>
@@ -115,12 +119,13 @@ export function optimizeNodeLayout(
         );
         if (croppingStateIndex >= 0) {
             const croppingState = classStates[croppingStateIndex];
-            positions.set(croppingState.state_id, { x, y: 500 });
-            specialStates.add(croppingState.state_id);
+            const cropId = getGraphStateId(croppingState);
+            positions.set(cropId, { x, y: 500 });
+            specialStates.add(cropId);
         }
 
         const remainingStates = classStates.filter(
-            (state) => !specialStates.has(state.state_id)
+            (state) => !specialStates.has(getGraphStateId(state))
         );
 
         const verticalSpacing = 120;
@@ -128,7 +133,8 @@ export function optimizeNodeLayout(
 
         remainingStates.forEach((state, index) => {
             const y = startY + index * verticalSpacing;
-            positions.set(state.state_id, { x, y });
+            const id = getGraphStateId(state);
+            positions.set(id, { x, y });
         });
     });
 

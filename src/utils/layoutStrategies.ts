@@ -1,6 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
-import type { StateData, TransitionData } from './stateTransition/types';
-import type { BMRGData } from './stateTransition/types';
+import type { StateData, TransitionData, BMRGData } from './stateTransition/types';
+import { getGraphStateId } from './stateTransition';
 
 export type LayoutStrategy = 'grid' | 'layered' | 'force' | 'heuristic';
 
@@ -18,14 +18,17 @@ function gridPositions(states: StateData[]): Map<number, Position> {
   states.forEach((s, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    positions.set(s.state_id, { x: startX + col * spacingX, y: startY + row * spacingY });
+    positions.set(getGraphStateId(s), { x: startX + col * spacingX, y: startY + row * spacingY });
   });
   return positions;
 }
 
 async function elkPositions(algorithm: 'layered' | 'force', states: StateData[], transitions: TransitionData[]): Promise<Map<number, Position>> {
   const elk = new ELK();
-  const nodes = states.map((s) => ({ id: `state-${s.state_id}`, width: 180, height: 80 }));
+  const nodes = states.map((s) => {
+    const id = getGraphStateId(s);
+    return { id: `state-${id}`, width: 180, height: 80 };
+  });
   const edges = transitions
     .filter((t) => t.start_state_id !== t.end_state_id)
     .map((t, i) => ({ id: `e-${i}-${t.start_state_id}-${t.end_state_id}`, sources: [`state-${t.start_state_id}`], targets: [`state-${t.end_state_id}`] }));
@@ -60,4 +63,3 @@ export async function computeLayoutPositions(strategy: LayoutStrategy, data: BMR
   if (strategy === 'force') return elkPositions('force', states, transitions);
   return gridPositions(states);
 }
-
