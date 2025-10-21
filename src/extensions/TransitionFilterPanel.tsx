@@ -5,6 +5,7 @@ import type { BMRGData } from '../utils/stateTransition';
 import type { DeltaFilterOption } from '../app/types';
 
 type Props = {
+  dataTourId?: string;
   bmrgData: BMRGData | null;
 
   // Global filters from the toolbar (we keep intersecting with them)
@@ -33,6 +34,7 @@ function isTruthy(v: unknown): boolean {
 }
 
 export function TransitionFilterPanel({
+  dataTourId,
   bmrgData,
   showSelfTransitions,
   deltaFilter,
@@ -137,7 +139,7 @@ export function TransitionFilterPanel({
       position="top-left"
       className="stm-ext-panel"
       style={{ top: 76, left: 8, width: 380 }}
-      data-tour="filters"
+      data-tour={dataTourId || "filters"}
     >
       <div className="stm-ext-card">
         <div className="stm-ext-header">
