@@ -5,7 +5,7 @@ type Item = { id: ItemId; label: string; done: boolean };
 const KEY = 'onboarding.checklist.v1';
 
 export function Checklist() {
-  const [items] = useState<Item[]>(() => {
+  const [items, setItems] = useState<Item[]>(() => {
     const raw = localStorage.getItem(KEY);
     return raw
       ? JSON.parse(raw)
