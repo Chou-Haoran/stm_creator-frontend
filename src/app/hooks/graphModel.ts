@@ -47,6 +47,7 @@ export function createModelActions({
             setNodes(initialNodes);
             setIsLoading(false);
         } catch (err) {
+            // This should rarely happen now since loadBMRGData falls back to empty model
             console.error('Failed to load BMRG data:', err);
             setError('Failed to load state transition data. Please check the console for details.');
             setIsLoading(false);
@@ -69,6 +70,12 @@ export function createModelActions({
         setIsSaving(true);
 
         try {
+            // Normalize payload to avoid common backend rejects
+            const payload = { ...data } as any;
+            if (payload.region_id == null || Number(payload.region_id) <= 0) {
+                payload.region_id = null;
+            }
+
             const response = await fetch(`${API_BASE}/models/save`, {
                 method: 'POST',
                 headers: {
@@ -76,7 +83,7 @@ export function createModelActions({
                     Accept: 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
             });
 
             if (response.status === 401 || response.status === 403) {
@@ -97,8 +104,12 @@ export function createModelActions({
                 throw new Error(message);
             }
 
-            const payload = (await response.json()) as SaveModelResponse;
-            return payload;
+            const result = (await response.json()) as SaveModelResponse;
+            // Persist returned modelId back to local state so subsequent saves update instead of insert
+            if (result && typeof result.modelId === 'number') {
+                setData((prev) => (prev ? { ...prev, id: result.modelId as number } : prev));
+            }
+            return result;
         } catch (err) {
             console.error('Failed to save model:', err);
             throw err;
