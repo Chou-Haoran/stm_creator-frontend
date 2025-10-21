@@ -7,8 +7,19 @@ function __pickApiBase(): string {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
     const isLocalHost = host === 'localhost' || host === '127.0.0.1';
     // If running on a non-localhost origin but API base points to localhost, fallback to cloud.
-    if (!isLocalHost && /localhost:\d+/.test(candidate)) {
-      return __defaultCloudBase;
+    if (!isLocalHost) {
+      try {
+        const u = new URL(candidate);
+        const apiHost = (u.hostname || '').toLowerCase();
+        if (apiHost === 'localhost' || apiHost === '127.0.0.1') {
+          return __defaultCloudBase;
+        }
+      } catch {
+        // If candidate is not a valid URL string, do a simple string check
+        if (/localhost(\b|:)/i.test(candidate)) {
+          return __defaultCloudBase;
+        }
+      }
     }
   } catch {
     // ignore environment probing errors
