@@ -1,4 +1,22 @@
-export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hammerhead-app-t8l9y.ondigitalocean.app';
+const __envBase = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+const __defaultCloudBase = 'https://hammerhead-app-t8l9y.ondigitalocean.app';
+
+function __pickApiBase(): string {
+  const candidate = __envBase || __defaultCloudBase;
+  try {
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    // If running on a non-localhost origin but API base points to localhost, fallback to cloud.
+    if (!isLocalHost && /localhost:\d+/.test(candidate)) {
+      return __defaultCloudBase;
+    }
+  } catch {
+    // ignore environment probing errors
+  }
+  return candidate;
+}
+
+export const API_BASE = __pickApiBase();
 
 export type AuthUser = {
   id: string | number;
@@ -39,8 +57,23 @@ export async function signup(name: string, email: string, password: string, role
 
 async function safeError(res: Response): Promise<string | undefined> {
   try {
-    const data = await res.json();
-    return data?.error;
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { return text?.trim() || undefined; }
+
+    const err = data?.error ?? data;
+    if (typeof err === 'string') return err;
+    if (typeof err?.message === 'string') return err.message;
+
+    const details = err?.details ?? data?.details;
+    if (Array.isArray(details) && details.length) {
+      const first: any = details[0];
+      const msg = typeof first?.message === 'string' ? first.message : undefined;
+      const path = typeof first?.path === 'string' ? first.path : undefined;
+      return msg && path ? `${path}: ${msg}` : msg;
+    }
+    if (typeof data?.message === 'string') return data.message;
+    return undefined;
   } catch {
     return undefined;
   }
