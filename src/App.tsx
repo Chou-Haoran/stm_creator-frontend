@@ -7,6 +7,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
 import './SwimlaneStyle.css';
@@ -25,8 +26,11 @@ import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
 import './extensions/extensions.css';
 import AuthPage from './app/auth/AuthPage';
 import { authStorage, type AuthUser } from './app/auth/api';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 
-function App() {
+// Graph Editor Component
+function GraphEditor() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
     const token = authStorage.getToken();
@@ -65,6 +69,7 @@ function App() {
     handleSaveTransition,
     handleSaveModel,
     handleReLayout,
+    applyLayout,
     toggleEdgeCreationMode,
     loadExistingEdges,
     toggleSelfTransitions,
@@ -101,6 +106,7 @@ function App() {
         onToggleEdgeCreation={toggleEdgeCreationMode}
         onLoadEdges={loadExistingEdges}
         onSaveModel={handleSaveModel}
+        onApplyLayout={applyLayout}
         onSaveVersion={saveCurrentVersion}
         onOpenVersionManager={openVersionManager}
         onImportEKS={importFromEKS}
@@ -112,6 +118,10 @@ function App() {
         showSelfTransitions={showSelfTransitions}
         bmrgData={bmrgData}
         onOpenHelp={() => setIsHelpOpen(true)}
+        userEmail={auth?.user.email ?? null}
+        isGuest={isGuest}
+        onLogout={() => { authStorage.clear(); setAuth(null); setIsGuest(false); }}
+        onSignIn={() => { setIsGuest(false); }}
       />
 
       <ReactFlow
@@ -162,28 +172,7 @@ function App() {
         />
       </ReactFlow>
 
-      {/* Simple auth indicator + logout */}
-      <Panel position="top-left" style={{ top: 8, left: 8 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {auth ? (
-            <>
-              <span style={{ color: '#9ca3af', fontSize: 12 }}>Signed in as {auth.user.email}</span>
-              <button
-                onClick={() => { authStorage.clear(); setAuth(null); }}
-                style={{ fontSize: 12, padding: '6px 8px' }}
-              >Logout</button>
-            </>
-          ) : (
-            <>
-              <span style={{ color: '#9ca3af', fontSize: 12 }}>Guest mode</span>
-              <button
-                onClick={() => { setIsGuest(false); }}
-                style={{ fontSize: 12, padding: '6px 8px' }}
-              >Sign in</button>
-            </>
-          )}
-        </div>
-      </Panel>
+      {/* Identity moved into toolbar */}
 
       <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
 
@@ -213,6 +202,21 @@ function App() {
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
+  );
+}
+
+// Main App Component with Routing
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/editor" element={<GraphEditor />} />
+        <Route path="/login" element={<Navigate to="/editor" replace />} />
+        <Route path="/notfound" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/notfound" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

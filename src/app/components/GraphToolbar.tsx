@@ -1,23 +1,30 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { BMRGData } from '../../utils/stateTransition';
+import type { SaveModelResponse } from '../hooks/graphModel';
+import type { LayoutStrategy } from '../../utils/layoutStrategies';
 
 interface GraphToolbarProps {
   readonly onAddNode: () => void;
   readonly onToggleEdgeCreation: () => void;
   readonly onLoadEdges: () => void;
-  readonly onSaveModel: () => void | Promise<void>;
+  readonly onSaveModel: () => Promise<SaveModelResponse>;
   readonly onSaveVersion: () => void;
   readonly onOpenVersionManager: () => void;
   readonly onImportEKS: (file: File) => void | Promise<void>;
   readonly onExportEKS: () => void;
   readonly onRelayout: () => void;
+  readonly onApplyLayout?: (strategy: LayoutStrategy) => void | Promise<void>;
   readonly onToggleSelfTransitions: () => void;
   readonly edgeCreationMode: boolean;
   readonly isSaving: boolean;
   readonly showSelfTransitions: boolean;
   readonly bmrgData: BMRGData | null;
   readonly onOpenHelp: () => void;
+  readonly userEmail?: string | null;
+  readonly isGuest?: boolean;
+  readonly onLogout?: () => void;
+  readonly onSignIn?: () => void;
 }
 
 export function GraphToolbar({
@@ -26,6 +33,7 @@ export function GraphToolbar({
   onLoadEdges,
   onSaveModel,
   onRelayout,
+  onApplyLayout,
   onSaveVersion,
   onOpenVersionManager,
   onImportEKS,
@@ -36,8 +44,12 @@ export function GraphToolbar({
   showSelfTransitions,
   bmrgData,
   onOpenHelp,
+  userEmail,
+  onLogout,
+  onSignIn,
 }: GraphToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [layout, setLayout] = useState<LayoutStrategy>('force');
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -80,7 +92,9 @@ export function GraphToolbar({
       </button>
 
       <button
-        onClick={onSaveModel}
+        onClick={() => {
+          void onSaveModel().catch(() => undefined);
+        }}
         disabled={isSaving}
         className={`button button-success ${isSaving ? 'button-disabled' : ''}`}
       >
@@ -107,9 +121,48 @@ export function GraphToolbar({
         📤 Export EKS
       </button>
 
-      <button onClick={onRelayout} className="button button-secondary">
-        📊 Re-layout
-      </button>
+      {onApplyLayout && (
+        <div className="layout-inline">
+          <select
+            value={layout}
+            onChange={(e) => setLayout(e.target.value as LayoutStrategy)}
+            className="button button-secondary select-like-btn"
+            title="Layout"
+          >
+            <option value="layered">Layered (directed)</option>
+            <option value="grid">Grid</option>
+            <option value="force">Force-directed</option>
+            <option value="heuristic">Heuristic (project)</option>
+          </select>
+          <button
+            onClick={() => {
+              if (layout === 'heuristic') {
+                onRelayout();
+              } else {
+                onApplyLayout(layout);
+              }
+            }}
+            className="button button-secondary"
+          >
+            ▶ Apply Layout
+          </button>
+      </div>
+      )}
+
+      <div style={{ flex: 1 }} />
+
+      {/* Identity controls aligned to right, matching button styles */}
+      {userEmail ? (
+        <>
+          <span className="info-panel" style={{ padding: '8px 10px' }}>Signed in as {userEmail}</span>
+          <button onClick={onLogout} className="button button-secondary">Logout</button>
+        </>
+      ) : (
+        <>
+          <span className="info-panel" style={{ padding: '8px 10px' }}>Guest mode</span>
+          <button onClick={onSignIn} className="button button-primary">Sign in</button>
+        </>
+      )}
 
       <button
         onClick={onToggleSelfTransitions}

@@ -398,3 +398,190 @@ curl -i -X POST http://localhost:3000/models/save \
 * ✅ Protected save at `POST /models/save`.
 * ✅ Roles aligned (Viewer/Editor/Admin); friendly 401/403 messages.
 * ⚠️ Requires Editor/Admin for Save; Viewer is read-only.
+
+---
+
+## Entry — Logout Functionality
+**Date:** "2025-01-27"  
+**Author:** "Edward Zhang"  
+**Branch:** `feat/logout-functionality`  
+**Status:** Completed
+
+### Summary
+Implemented comprehensive logout functionality for the authentication system. Users can now securely log out from their accounts, clearing all stored authentication data and returning to the login screen. The feature includes proper UI feedback and state management.
+
+### Goals
+- Provide secure logout mechanism that clears all authentication data
+- Implement intuitive UI controls for logout action
+- Ensure proper state management and user feedback
+- Maintain clean separation between authenticated and guest modes
+
+### Key Changes
+- **Files:** `src/App.tsx`, `src/App.css`, `src/app/auth/api.ts`
+- **Features:**
+  - Added logout button in authentication panel (top-right corner)
+  - Implemented `authStorage.clear()` to remove JWT token and user data from localStorage
+  - Added state reset functionality to return user to login screen
+  - Enhanced authentication panel with clear user status display
+- **UI/UX:**
+  - Red logout button with hover effects for clear visual indication
+  - User email display when authenticated ("Signed in as user@example.com")
+  - Guest mode indicator with sign-in option
+  - Responsive authentication panel with proper styling
+- **Code Quality:**
+  - Fixed TypeScript linting warning in auth API (`safeError` function)
+  - Maintained existing authentication flow integrity
+  - Proper error handling and state management
+
+### Technical Implementation
+- **Logout Flow:**
+  1. User clicks logout button
+  2. `authStorage.clear()` removes token and user data from localStorage
+  3. `setAuth(null)` resets authentication state
+  4. App automatically redirects to login screen
+- **Authentication Panel:**
+  - Positioned in top-right corner using ReactFlow Panel component
+  - Shows different UI based on authentication state
+  - Includes proper styling with backdrop blur and shadow effects
+
+### Notes
+- Logout functionality is fully client-side and doesn't require backend API calls
+- Authentication state is properly managed through React state and localStorage
+- UI provides clear visual feedback for both authenticated and guest modes
+- Feature maintains compatibility with existing authentication system
+
+### Testing Checklist
+- ✅ Logout button appears when user is authenticated
+- ✅ Clicking logout clears localStorage and resets auth state
+- ✅ User is redirected to login screen after logout
+- ✅ Guest mode displays appropriate UI elements
+- ✅ No linting errors or TypeScript warnings
+- ✅ Authentication panel styling is responsive and accessible
+
+---
+
+## Entry — Backend API Migration to Digital Ocean
+**Date:** "2025-01-27"  
+**Author:** "Edward Zhang"  
+**Branch:** `feat/logout-functionality`  
+**Status:** Completed
+
+### Summary
+Migrated the backend API endpoint from localhost development server to Digital Ocean production environment. The frontend now connects to the deployed backend at `https://hammerhead-app-t8l9y.ondigitalocean.app/` instead of the local `http://localhost:3000` endpoint.
+
+### Goals
+- Transition from local development backend to production Digital Ocean deployment
+- Update API base URL configuration to point to production environment
+- Ensure authentication and model saving functionality works with production backend
+- Maintain backward compatibility for local development scenarios
+
+### Key Changes
+- **Files:** `src/app/auth/api.ts`
+- **API Configuration:**
+  - Updated `API_BASE` default URL from `http://localhost:3000` to `https://hammerhead-app-t8l9y.ondigitalocean.app`
+  - Maintained environment variable override capability via `VITE_API_BASE_URL`
+  - Preserved existing authentication and API call patterns
+
+### Technical Implementation
+- **API Base URL:**
+  ```typescript
+  export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hammerhead-app-t8l9y.ondigitalocean.app';
+  ```
+- **Environment Configuration:**
+  - Production: Uses Digital Ocean URL by default
+  - Development: Can override with `.env` file containing `VITE_API_BASE_URL=http://localhost:3000`
+  - Maintains flexibility for different deployment scenarios
+
+### Affected Endpoints
+- **Authentication:**
+  - `POST /auth/login` → `https://hammerhead-app-t8l9y.ondigitalocean.app/auth/login`
+  - `POST /auth/signup` → `https://hammerhead-app-t8l9y.ondigitalocean.app/auth/signup`
+- **Model Operations:**
+  - `POST /models/save` → `https://hammerhead-app-t8l9y.ondigitalocean.app/models/save`
+- **All API calls now use HTTPS for secure communication**
+
+### Deployment Considerations
+- **CORS Configuration:** Backend must have CORS enabled for the frontend domain
+- **SSL/TLS:** All communication now uses HTTPS for security
+- **Environment Variables:** Local development can still use localhost via `.env` override
+- **Production Readiness:** Frontend is now configured for production deployment
+
+### Migration Benefits
+- **Security:** HTTPS encryption for all API communications
+- **Reliability:** Production-grade infrastructure on Digital Ocean
+- **Scalability:** Cloud-hosted backend can handle increased load
+- **Accessibility:** Frontend can be deployed anywhere and connect to production backend
+
+### Notes
+- Local development workflow remains unchanged with environment variable override
+- All existing authentication flows and model saving functionality preserved
+- No breaking changes to frontend API integration patterns
+- Backend deployment on Digital Ocean must be properly configured for CORS and SSL
+
+### Testing Checklist
+- ✅ Authentication endpoints connect to Digital Ocean backend
+- ✅ Model saving functionality works with production API
+- ✅ HTTPS communication established successfully
+- ✅ Local development override still functional with `.env` file
+- ✅ No CORS issues with production backend
+- ✅ JWT token handling works with production authentication
+
+---
+
+## Entry — Save Model API Integration
+**Date:** "2025-10-21"  
+**Author:** "Xinyu Zhang"  
+**Branch:** `feat/connect-API-of-Save-STM-Model`  
+**Status:** Completed
+
+### Summary
+Integrated the Save Model workflow with the authenticated backend API. Login now persists JWTs under two keys for backward compatibility, the save handler posts directly to `${API_BASE}/models/save`, and the UI/typing layers propagate the typed response while guarding against accidental double invocation.
+
+### Goals
+- Persist the session token in a way that works with legacy and new consumers.
+- Issue an authenticated `POST` to the Save Model endpoint and surface backend errors clearly.
+- Restrict the API call to the dedicated “Save Model” control with a typed promise contract.
+- Align STM domain types with optional identifiers expected by the backend contract.
+
+### Key Changes
+- **Files:** `src/app/auth/api.ts`
+  - Store JWT in both `auth.token` and `token` keys and read from either to support older code paths.
+  - Keep the `API_BASE` environment override while preserving the production fallback URL.
+- **Files:** `src/app/hooks/graphModel.ts`
+  - Replace the previous loader helper with a direct `fetch` to `${API_BASE}/models/save` that includes `Authorization: Bearer <token>`.
+  - Added `SaveModelResponse` typing plus status-specific error handling (401/403, ≥500, other non-OK) with message extraction.
+- **Files:** `src/app/components/GraphToolbar.tsx`
+  - Updated `onSaveModel` signature to return `Promise<SaveModelResponse>` and wrapped the click handler to swallow rejected promises, ensuring only this button triggers the call.
+- **Files:** `src/app/hooks/useGraphEditor.types.ts`, `src/utils/stateTransition/types.ts`
+  - Propagate the new save response type through the hook API and extend STM types with optional `id`/`frontend_state_id` fields used by the backend.
+
+### Technical Implementation
+- **Authentication Storage:**
+  ```typescript
+  localStorage.setItem('auth.token', auth.token);
+  localStorage.setItem('token', auth.token);
+  // ...
+  return localStorage.getItem('auth.token') || localStorage.getItem('token');
+  ```
+- **Save Request:**
+  ```typescript
+  const response = await fetch(`${API_BASE}/models/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  ```
+  - Dedicated guards for `401/403`, `response.status >= 500`, and other non-OK statuses, with `extractErrorMessage` extracting backend details.
+- **UI Guardrails:** Button handler wraps `onSaveModel` in `void … .catch(() => undefined)` so unresolved promises do not cascade through the UI.
+- **Domain Types:** Added optional identifiers to `BMRGData`, `StateData`, and `TransitionData` to match backend update payloads.
+
+### Testing Checklist
+- ☐ Login flow persists JWT under both keys and exposes it via `authStorage.getToken()`.
+- ☐ “Save Model” issues a `POST` to `${API_BASE}/models/save` with the serialized `BMRGData` payload.
+- ☐ 401/403 responses surface authorization messaging in the UI.
+- ☐ 500+ responses surface server error messaging in the UI.
+- ☐ Happy-path save returns the parsed `SaveModelResponse` to callers.
