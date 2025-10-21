@@ -137,6 +137,7 @@ export function TransitionFilterPanel({
       position="top-left"
       className="stm-ext-panel"
       style={{ top: 76, left: 8, width: 380 }}
+      data-tour="filters"
     >
       <div className="stm-ext-card">
         <div className="stm-ext-header">

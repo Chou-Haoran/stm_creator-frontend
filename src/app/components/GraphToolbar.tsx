@@ -51,15 +51,18 @@ export function GraphToolbar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayout] = useState<LayoutStrategy>('force');
 
+  // Trigger hidden file input
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
+  // Pass selected file to consumer
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       onImportEKS(file);
     }
+    // Reset input value so the same file can be chosen again
     event.target.value = '';
   };
 
@@ -67,7 +70,7 @@ export function GraphToolbar({
     bmrgData ? bmrgData.transitions.filter((t) => t.time_25 === 1).length : 0;
 
   return (
-    <div className="controls-toolbar">
+    <div className="controls-toolbar" data-tour="toolbar">
       <input
         ref={fileInputRef}
         type="file"
@@ -76,22 +79,28 @@ export function GraphToolbar({
         onChange={handleFileChange}
       />
 
-      <button onClick={onAddNode} className="button button-primary">
+      <button data-tour="add-node" onClick={onAddNode} className="button button-primary">
         ➕ Add Node
       </button>
 
       <button
+        data-tour="create-edge"
         onClick={onToggleEdgeCreation}
         className={`button button-edge-creation ${edgeCreationMode ? 'active' : ''}`}
       >
         {edgeCreationMode ? '🔗 Cancel Edge Creation' : '🔗 Create Edge'}
       </button>
 
-      <button onClick={onLoadEdges} className="button button-secondary">
+      <button
+        data-tour="load-all-edges"
+        onClick={onLoadEdges}
+        className="button button-secondary"
+      >
         🔄 Load All Edges
       </button>
 
       <button
+        data-tour="save-model"
         onClick={() => {
           void onSaveModel().catch(() => undefined);
         }}
@@ -101,23 +110,39 @@ export function GraphToolbar({
         {isSaving ? '💾 Saving...' : '💾 Save Model'}
       </button>
 
-      <button onClick={onSaveVersion} className="button button-secondary">
+      <button
+        data-tour="save-version"
+        onClick={onSaveVersion}
+        className="button button-secondary"
+      >
         💾 Save Version
       </button>
 
-      <button onClick={onOpenVersionManager} className="button button-secondary">
+      <button
+        data-tour="versions"
+        onClick={onOpenVersionManager}
+        className="button button-secondary"
+      >
         🗂 Versions
       </button>
 
-      <button onClick={onOpenHelp} className="button button-secondary">
+      <button data-tour="help" onClick={onOpenHelp} className="button button-secondary">
         ❓ Help
       </button>
 
-      <button onClick={handleImportClick} className="button button-secondary">
+      <button
+        data-tour="import-eks"
+        onClick={handleImportClick}
+        className="button button-secondary"
+      >
         📥 Import EKS
       </button>
 
-      <button onClick={onExportEKS} className="button button-secondary">
+      <button
+        data-tour="export-eks"
+        onClick={onExportEKS}
+        className="button button-secondary"
+      >
         📤 Export EKS
       </button>
 
@@ -134,33 +159,44 @@ export function GraphToolbar({
             <option value="force">Force-directed</option>
             <option value="heuristic">Heuristic (project)</option>
           </select>
+
           <button
+            data-tour="apply-layout"
             onClick={() => {
               if (layout === 'heuristic') {
                 onRelayout();
-              } else {
-                onApplyLayout(layout);
+              } else if (onApplyLayout) {
+                void onApplyLayout(layout);
               }
             }}
             className="button button-secondary"
           >
             ▶ Apply Layout
           </button>
-      </div>
+        </div>
       )}
 
+      {/* Spacer to push identity controls to the right */}
       <div style={{ flex: 1 }} />
 
-      {/* Identity controls aligned to right, matching button styles */}
+      {/* Identity controls (right side) */}
       {userEmail ? (
         <>
-          <span className="info-panel" style={{ padding: '8px 10px' }}>Signed in as {userEmail}</span>
-          <button onClick={onLogout} className="button button-secondary">Logout</button>
+          <span className="info-panel" style={{ padding: '8px 10px' }}>
+            Signed in as {userEmail}
+          </span>
+          <button onClick={onLogout} className="button button-secondary">
+            Logout
+          </button>
         </>
       ) : (
         <>
-          <span className="info-panel" style={{ padding: '8px 10px' }}>Guest mode</span>
-          <button onClick={onSignIn} className="button button-primary">Sign in</button>
+          <span className="info-panel" style={{ padding: '8px 10px' }}>
+            Guest mode
+          </span>
+          <button onClick={onSignIn} className="button button-primary">
+            Sign in
+          </button>
         </>
       )}
 

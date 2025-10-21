@@ -1,3 +1,5 @@
+// App.tsx — tour opens after auth with rAF delay, and is rendered OUTSIDE ReactFlow
+
 import {
   Background,
   Controls,
@@ -6,12 +8,14 @@ import {
   ReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
 import './SwimlaneStyle.css';
 import './App.css';
+
 import { GraphToolbar } from './app/components/GraphToolbar';
 import { EdgeCreationHint } from './app/components/EdgeCreationHint';
 import { ErrorState } from './app/components/ErrorState';
@@ -22,22 +26,48 @@ import { HelpModal } from './app/components/HelpModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
 import { TransitionModal } from './transitions/transitionModal';
+
 import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
 import './extensions/extensions.css';
+
 import AuthPage from './app/auth/AuthPage';
 import { authStorage, type AuthUser } from './app/auth/api';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 
-// Graph Editor Component
+// Onboarding
+import { Tour } from './extensions/onboarding/Tour';
+import { coachSteps } from './extensions/onboarding/coachmarks';
+
+/** Graph Editor Page */
 function GraphEditor() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Auth state
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
     const token = authStorage.getToken();
     const user = authStorage.getUser();
     return token && user ? { token, user } : null;
   });
   const [isGuest, setIsGuest] = useState(false);
+
+  // Tour visibility (do not open until after auth)
+  const [tourOpen, setTourOpen] = useState<boolean>(false);
+  const closeTour = () => setTourOpen(false);
+
+  // Open tour AFTER auth/guest gate, and AFTER the editor UI has painted
+  useEffect(() => {
+    if (!(auth || isGuest)) return;
+
+    // Use double rAF to ensure toolbar/panels have mounted and laid out
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => setTourOpen(true));
+      // store id2 on window to avoid TS unused var complaint
+      (window as any).__raf2 = id2;
+    });
+    return () => cancelAnimationFrame(id1);
+  }, [auth, isGuest]);
+
   const {
     nodesWithCallbacks,
     edges,
@@ -86,6 +116,7 @@ function GraphEditor() {
     importFromEKS,
   } = useGraphEditor();
 
+  // Auth gate
   if (!auth && !isGuest) {
     return (
       <AuthPage
@@ -100,29 +131,37 @@ function GraphEditor() {
 
   return (
     <div className="app-container">
-      {/* Toolbar WITHOUT the old Delta filter box */}
-      <GraphToolbar
-        onAddNode={openAddNodeModal}
-        onToggleEdgeCreation={toggleEdgeCreationMode}
-        onLoadEdges={loadExistingEdges}
-        onSaveModel={handleSaveModel}
-        onApplyLayout={applyLayout}
-        onSaveVersion={saveCurrentVersion}
-        onOpenVersionManager={openVersionManager}
-        onImportEKS={importFromEKS}
-        onExportEKS={exportToEKS}
-        onRelayout={handleReLayout}
-        onToggleSelfTransitions={toggleSelfTransitions}
-        edgeCreationMode={edgeCreationMode}
-        isSaving={isSaving}
-        showSelfTransitions={showSelfTransitions}
-        bmrgData={bmrgData}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        userEmail={auth?.user.email ?? null}
-        isGuest={isGuest}
-        onLogout={() => { authStorage.clear(); setAuth(null); setIsGuest(false); }}
-        onSignIn={() => { setIsGuest(false); }}
-      />
+      {/* Wrap toolbar with an anchor so tour has a stable target even if buttons shift */}
+      <div data-tour="toolbar">
+        <GraphToolbar
+          onAddNode={openAddNodeModal}
+          onToggleEdgeCreation={toggleEdgeCreationMode}
+          onLoadEdges={loadExistingEdges}
+          onSaveModel={handleSaveModel}
+          onApplyLayout={applyLayout}
+          onSaveVersion={saveCurrentVersion}
+          onOpenVersionManager={openVersionManager}
+          onImportEKS={importFromEKS}
+          onExportEKS={exportToEKS}
+          onRelayout={handleReLayout}
+          onToggleSelfTransitions={toggleSelfTransitions}
+          edgeCreationMode={edgeCreationMode}
+          isSaving={isSaving}
+          showSelfTransitions={showSelfTransitions}
+          bmrgData={bmrgData}
+          onOpenHelp={() => setIsHelpOpen(true)}
+          userEmail={auth?.user.email ?? null}
+          isGuest={isGuest}
+          onLogout={() => {
+            authStorage.clear();
+            setAuth(null);
+            setIsGuest(false);
+          }}
+          onSignIn={() => {
+            setIsGuest(false);
+          }}
+        />
+      </div>
 
       <ReactFlow
         nodes={nodesWithCallbacks}
@@ -156,26 +195,34 @@ function GraphEditor() {
         <MiniMap />
         <Controls />
 
-
-        <Panel position="top-right" style={{ top: 100, right: 8, width: 360 }}>
+        {/* Tips anchor */}
+        <Panel
+          position="top-right"
+          style={{ top: 156, right: 8, width: 360, zIndex: 18 }}
+          data-tour="tips"
+        >
           <TipsPanel />
         </Panel>
 
-        {/* P2: 4. Transition Filtering*/}
-        <TransitionFilterPanel
-          bmrgData={bmrgData}
-          showSelfTransitions={showSelfTransitions}
-          deltaFilter={deltaFilter}
-          onToggleSelfTransitions={toggleSelfTransitions}
-          onDeltaFilterChange={toggleDeltaFilter}
-          onReset={loadExistingEdges}
-        />
+        {/* Filters anchor wrapper so the 'filters' step always finds a target */}
+          <TransitionFilterPanel
+            dataTourId="filters"
+            bmrgData={bmrgData}
+            showSelfTransitions={showSelfTransitions}
+            deltaFilter={deltaFilter}
+            onToggleSelfTransitions={toggleSelfTransitions}
+            onDeltaFilterChange={toggleDeltaFilter}
+            onReset={loadExistingEdges}
+          />
       </ReactFlow>
 
-      {/* Identity moved into toolbar */}
+      {/* IMPORTANT: Tour is OUTSIDE ReactFlow to avoid clipping/z-index issues */}
+      <Tour open={tourOpen} onClose={closeTour} steps={coachSteps} />
 
+      {/* Edge creation hint banner */}
       <EdgeCreationHint isActive={edgeCreationMode} hasStartNode={Boolean(startNodeId)} />
 
+      {/* Modals */}
       <NodeModal
         isOpen={isNodeModalOpen}
         onClose={closeNodeModal}
@@ -205,13 +252,14 @@ function GraphEditor() {
   );
 }
 
-// Main App Component with Routing
+/** Router Shell */
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Navigate to="/editor" replace />} />
         <Route path="/editor" element={<GraphEditor />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Navigate to="/editor" replace />} />
         <Route path="/notfound" element={<NotFound />} />
         <Route path="*" element={<Navigate to="/notfound" replace />} />
