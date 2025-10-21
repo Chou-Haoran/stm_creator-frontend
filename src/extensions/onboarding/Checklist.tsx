@@ -18,13 +18,23 @@ export function Checklist() {
   });
   useEffect(() => localStorage.setItem(KEY, JSON.stringify(items)), [items]);
 
+  const toggleItem = (id: ItemId) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, done: !item.done } : item
+    ));
+  };
+
   return (
     <div className="stm-ext-card" style={{ width: 260 }}>
       <div className="stm-ext-header"><div className="stm-ext-title">Getting started</div></div>
       <ul style={{ margin: 8 }}>
         {items.map(i => (
           <li key={i.id} style={{ opacity: i.done ? 0.6 : 1 }}>
-            <input type="checkbox" checked={i.done} readOnly /> {i.label}
+            <input 
+              type="checkbox" 
+              checked={i.done} 
+              onChange={() => toggleItem(i.id)}
+            /> {i.label}
           </li>
         ))}
       </ul>
