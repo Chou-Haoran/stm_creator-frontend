@@ -47,6 +47,7 @@ export function createModelActions({
             setNodes(initialNodes);
             setIsLoading(false);
         } catch (err) {
+            // This should rarely happen now since loadBMRGData falls back to empty model
             console.error('Failed to load BMRG data:', err);
             setError('Failed to load state transition data. Please check the console for details.');
             setIsLoading(false);

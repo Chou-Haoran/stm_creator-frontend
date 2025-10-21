@@ -3,43 +3,83 @@ import { API_BASE, getAuthHeader } from '../app/auth/api';
 
 function getModelName(): string | undefined {
   try {
-    const qs = new URLSearchParams(window.location.search);
+    const qs = new URLSearchParams(globalThis.location.search);
     const q = qs.get('model')?.trim();
     if (q) return q;
   } catch {}
   const envName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
-  if (envName && envName.trim()) return envName.trim();
+  if (envName?.trim()) return envName.trim();
   try {
     const last = localStorage.getItem('stmCreator.lastModelName');
-    if (last && last.trim()) return last.trim();
+    if (last?.trim()) return last.trim();
   } catch {}
   return undefined;
 }
 
-// Always load from backend; require a model name from URL/env/last saved
+// Create an empty model for new projects
+function createEmptyModel(): BMRGData {
+  const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  return {
+    stm_name: 'New Model',
+    version: '1.0',
+    release_date: now,
+    authorised_by: '',
+    contributing_experts: [],
+    region: '',
+    region_id: 0,
+    climate: '',
+    ecosystem_type: '',
+    aus_eco_archetype_code: 0,
+    aus_eco_archetype_name: '',
+    aus_eco_umbrella_code: 0,
+    peer_reviewed: 'No',
+    no_peer_reviewers: 0,
+    states: [],
+    transitions: [],
+    method_alignment: '',
+  };
+}
+
+// Load from backend, fallback to empty model if not found
 export async function loadBMRGData(): Promise<BMRGData> {
   const modelName = getModelName();
+  
+  // If no model name specified, create a new empty model
   if (!modelName) {
-    throw new Error('No model specified. Add ?model= in URL or set VITE_MODEL_NAME.');
+    return createEmptyModel();
   }
-  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
-    headers: { Accept: 'application/json', ...getAuthHeader() },
-  });
-  if (res.status === 401 || res.status === 403) {
-    throw new Error('Unauthorized to load model. Please sign in.');
-  }
-  if (res.status === 404) {
-    throw new Error(`Model not found: ${modelName}`);
-  }
-  if (!res.ok) {
-    const msg = await safeError(res);
-    throw new Error(msg || `Backend load failed (${res.status})`);
-  }
-  const data = (await res.json()) as BMRGData;
+  
   try {
-    localStorage.setItem('stmCreator.lastModelName', modelName);
-  } catch {}
-  return data;
+    const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
+      headers: { Accept: 'application/json', ...getAuthHeader() },
+    });
+    
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Unauthorized to load model. Please sign in.');
+    }
+    
+    if (res.status === 404) {
+      // Model not found - create empty model instead of throwing error
+      console.log(`Model "${modelName}" not found, creating empty model`);
+      return createEmptyModel();
+    }
+    
+    if (!res.ok) {
+      const msg = await safeError(res);
+      throw new Error(msg || `Backend load failed (${res.status})`);
+    }
+    
+    const data = (await res.json()) as BMRGData;
+    try {
+      localStorage.setItem('stmCreator.lastModelName', modelName);
+    } catch {}
+    return data;
+  } catch (err) {
+    // If network error or other issues, fallback to empty model
+    console.warn('Failed to load model from backend, creating empty model:', err);
+    return createEmptyModel();
+  }
 }
 
 // Save the updated BMRG data back to the server
