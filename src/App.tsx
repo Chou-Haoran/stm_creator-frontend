@@ -22,6 +22,7 @@ import { ErrorState } from './app/components/ErrorState';
 import { LoadingState } from './app/components/LoadingState';
 import { TipsPanel } from './app/components/TipsPanel';
 import { VersionManagerModal } from './app/components/VersionManagerModal';
+import { ModelListModal } from './app/components/ModelListModal';
 import { HelpModal } from './app/components/HelpModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
 import { NodeModal } from './nodes/nodeModal';
@@ -42,6 +43,7 @@ import { coachSteps } from './extensions/onboarding/coachmarks';
 /** Graph Editor Page */
 function GraphEditor() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isModelListOpen, setIsModelListOpen] = useState(false);
 
   // Auth state
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
@@ -138,6 +140,7 @@ function GraphEditor() {
           onToggleEdgeCreation={toggleEdgeCreationMode}
           onLoadEdges={loadExistingEdges}
           onSaveModel={handleSaveModel}
+          onOpenModelList={() => setIsModelListOpen(true)}
           onApplyLayout={applyLayout}
           onSaveVersion={saveCurrentVersion}
           onOpenVersionManager={openVersionManager}
@@ -248,6 +251,7 @@ function GraphEditor() {
       />
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} />
     </div>
   );
 }

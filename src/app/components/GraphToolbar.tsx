@@ -9,6 +9,7 @@ interface GraphToolbarProps {
   readonly onToggleEdgeCreation: () => void;
   readonly onLoadEdges: () => void;
   readonly onSaveModel: () => Promise<SaveModelResponse>;
+  readonly onOpenModelList?: () => void;
   readonly onSaveVersion: () => void;
   readonly onOpenVersionManager: () => void;
   readonly onImportEKS: (file: File) => void | Promise<void>;
@@ -32,6 +33,7 @@ export function GraphToolbar({
   onToggleEdgeCreation,
   onLoadEdges,
   onSaveModel,
+  onOpenModelList,
   onRelayout,
   onApplyLayout,
   onSaveVersion,
@@ -109,6 +111,16 @@ export function GraphToolbar({
       >
         {isSaving ? '💾 Saving...' : '💾 Save Model'}
       </button>
+
+      {onOpenModelList && (
+        <button
+          data-tour="open-model"
+          onClick={onOpenModelList}
+          className="button button-secondary"
+        >
+          📂 Open Model
+        </button>
+      )}
 
       <button
         data-tour="save-version"
