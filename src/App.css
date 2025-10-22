@@ -39,6 +39,10 @@
     background: #17a2b8;
 }
 
+.button-danger {
+    background: #dc3545;
+}
+
 .button-disabled {
     opacity: 0.7;
     cursor: default;

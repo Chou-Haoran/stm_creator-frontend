@@ -192,6 +192,12 @@
     color: white;
 }
 
+.btn-danger {
+    border: none;
+    background-color: #dc3545;
+    color: #fff;
+}
+
 /* Causal Chain */
 .causal-chain-container {
     margin-bottom: 15px;
