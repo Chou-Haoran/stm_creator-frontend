@@ -116,6 +116,11 @@ export function createModelActions({
                 console.warn('Model saved but failed to refresh latest data', error_);
             }
 
+            // 保存成功后跳转到对应的editor页面
+            if (data.stm_name) {
+                globalThis.location.href = `/editor?model=${encodeURIComponent(data.stm_name)}`;
+            }
+
             return result;
         } catch (err) {
             console.error('Failed to save model:', err);

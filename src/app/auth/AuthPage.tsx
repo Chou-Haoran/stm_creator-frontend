@@ -1,14 +1,42 @@
 import { useState } from 'react';
 import { login, signup, authStorage, type AuthResponse } from './api';
+import { ModelSelectionModal } from '../components/ModelSelectionModal';
 
 type Props = {
-  onAuthenticated: (auth: AuthResponse) => void;
-  onContinueGuest: () => void;
+  readonly onAuthenticated: (auth: AuthResponse) => void;
+  readonly onContinueGuest: () => void;
+  readonly onModelSelected?: (modelName: string, isNew: boolean) => void;
 };
 
-export default function AuthPage({ onAuthenticated, onContinueGuest }: Props) {
+export default function AuthPage({ onAuthenticated, onContinueGuest, onModelSelected }: Props) {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [hasLogo, setHasLogo] = useState(true);
+  const [showModelSelection, setShowModelSelection] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState<AuthResponse | null>(null);
+
+  const handleAuthenticated = (auth: AuthResponse) => {
+    setPendingAuth(auth);
+    setShowModelSelection(true);
+  };
+
+  const handleModelSelected = (modelName: string, isNew: boolean) => {
+    setShowModelSelection(false);
+    if (onModelSelected) {
+      onModelSelected(modelName, isNew);
+    }
+    if (pendingAuth) {
+      onAuthenticated(pendingAuth);
+      setPendingAuth(null);
+    }
+  };
+
+  const handleCloseModelSelection = () => {
+    setShowModelSelection(false);
+    if (pendingAuth) {
+      onAuthenticated(pendingAuth);
+      setPendingAuth(null);
+    }
+  };
   return (
     <div style={container}>
       <div style={hero}>
@@ -31,20 +59,27 @@ export default function AuthPage({ onAuthenticated, onContinueGuest }: Props) {
           <button style={mode === 'signup' ? tabActive : tab} onClick={() => setMode('signup')}>Sign Up</button>
         </div>
         {mode === 'login' ? (
-          <LoginForm onAuthenticated={onAuthenticated} />
+          <LoginForm onAuthenticated={handleAuthenticated} />
         ) : (
-          <SignupForm onAuthenticated={onAuthenticated} />
+          <SignupForm onAuthenticated={handleAuthenticated} />
         )}
         <div style={divider}><span style={dividerLine} /> or <span style={dividerLine} /></div>
         <button style={ghostBtn} onClick={onContinueGuest}>
           Continue as Guest
         </button>
       </div>
+      
+      <ModelSelectionModal
+        isOpen={showModelSelection}
+        onClose={handleCloseModelSelection}
+        onCreateNew={(modelName) => handleModelSelected(modelName, true)}
+        onLoadExisting={(modelName) => handleModelSelected(modelName, false)}
+      />
     </div>
   );
 }
 
-function LoginForm({ onAuthenticated }: { onAuthenticated: (auth: AuthResponse) => void }) {
+function LoginForm({ onAuthenticated }: { readonly onAuthenticated: (auth: AuthResponse) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,17 +102,17 @@ function LoginForm({ onAuthenticated }: { onAuthenticated: (auth: AuthResponse) 
 
   return (
     <form onSubmit={onSubmit}>
-      <label style={label}>Email</label>
-      <input style={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-      <label style={label}>Password</label>
-      <input style={input} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+      <label htmlFor="login-email" style={label}>Email</label>
+      <input id="login-email" style={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      <label htmlFor="login-password" style={label}>Password</label>
+      <input id="login-password" style={input} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       {error && <div style={errorBox}>{error}</div>}
       <button style={primaryBtn} disabled={loading} type="submit">{loading ? 'Logging in…' : 'Login'}</button>
     </form>
   );
 }
 
-function SignupForm({ onAuthenticated }: { onAuthenticated: (auth: AuthResponse) => void }) {
+function SignupForm({ onAuthenticated }: { readonly onAuthenticated: (auth: AuthResponse) => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,14 +137,14 @@ function SignupForm({ onAuthenticated }: { onAuthenticated: (auth: AuthResponse)
 
   return (
     <form onSubmit={onSubmit}>
-      <label style={label}>Name</label>
-      <input style={input} type="text" required value={name} onChange={(e) => setName(e.target.value)} />
-      <label style={label}>Email</label>
-      <input style={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-      <label style={label}>Password</label>
-      <input style={input} type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
-      <label style={label}>Role (optional)</label>
-      <select style={input} value={role} onChange={(e) => setRole(e.target.value)}>
+      <label htmlFor="signup-name" style={label}>Name</label>
+      <input id="signup-name" style={input} type="text" required value={name} onChange={(e) => setName(e.target.value)} />
+      <label htmlFor="signup-email" style={label}>Email</label>
+      <input id="signup-email" style={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      <label htmlFor="signup-password" style={label}>Password</label>
+      <input id="signup-password" style={input} type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+      <label htmlFor="signup-role" style={label}>Role (optional)</label>
+      <select id="signup-role" style={input} value={role} onChange={(e) => setRole(e.target.value)}>
         <option value="Viewer">Viewer</option>
         <option value="Editor">Editor</option>
         <option value="Admin">Admin</option>

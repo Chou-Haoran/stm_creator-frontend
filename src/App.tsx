@@ -64,8 +64,8 @@ function GraphEditor() {
     // Use double rAF to ensure toolbar/panels have mounted and laid out
     const id1 = requestAnimationFrame(() => {
       const id2 = requestAnimationFrame(() => setTourOpen(true));
-      // store id2 on window to avoid TS unused var complaint
-      (window as any).__raf2 = id2;
+      // store id2 on globalThis to avoid TS unused var complaint
+      (globalThis as any).__raf2 = id2;
     });
     return () => cancelAnimationFrame(id1);
   }, [auth, isGuest]);
@@ -118,18 +118,37 @@ function GraphEditor() {
     importFromEKS,
   } = useGraphEditor();
 
+  const handleCreateNewModel = (modelName: string) => {
+    // Create new model with the specified name, jump to editor with model parameter
+    globalThis.location.href = `/editor?model=${encodeURIComponent(modelName)}`;
+  };
+
+  const handleLoadExistingModel = (modelName: string) => {
+    // Load existing model, jump to editor with model parameter
+    globalThis.location.href = `/editor?model=${encodeURIComponent(modelName)}`;
+  };
+
+  const handleModelSelection = (modelName: string, isNew: boolean) => {
+    if (isNew) {
+      handleCreateNewModel(modelName);
+    } else {
+      handleLoadExistingModel(modelName);
+    }
+  };
+
   // Auth gate
   if (!auth && !isGuest) {
     return (
       <AuthPage
         onAuthenticated={(a) => setAuth(a)}
         onContinueGuest={() => setIsGuest(true)}
+        onModelSelected={handleModelSelection}
       />
     );
   }
 
   if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
+  if (error) return <ErrorState message={error} onRetry={() => globalThis.location.reload()} />;
 
   return (
     <div className="app-container">

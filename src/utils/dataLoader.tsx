@@ -23,20 +23,20 @@ function getModelName(): string | undefined {
 }
 
 // Create an empty model for new projects
-function createEmptyModel(): BMRGData {
+function createEmptyModel(modelName?: string): BMRGData {
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   
   return {
-    stm_name: 'New Model',
+    stm_name: modelName || 'New Model - 1',
     version: '1.0',
     release_date: now,
     authorised_by: '',
     contributing_experts: [],
     region: '',
-    region_id: 0,
+    region_id: 1,
     climate: '',
     ecosystem_type: '',
-    aus_eco_archetype_code: 0,
+    aus_eco_archetype_code: 1.2,
     aus_eco_archetype_name: '',
     aus_eco_umbrella_code: 0,
     peer_reviewed: 'No',
@@ -66,9 +66,9 @@ export async function loadBMRGData(): Promise<BMRGData> {
     }
     
     if (res.status === 404) {
-      // Model not found - create empty model instead of throwing error
-      console.log(`Model "${modelName}" not found, creating empty model`);
-      return createEmptyModel();
+      // Model not found - create empty model with the requested name instead of throwing error
+      console.log(`Model "${modelName}" not found, creating empty model with name "${modelName}"`);
+      return createEmptyModel(modelName);
     }
     
     if (!res.ok) {
@@ -82,9 +82,9 @@ export async function loadBMRGData(): Promise<BMRGData> {
     } catch {}
     return data;
   } catch (err) {
-    // If network error or other issues, fallback to empty model
-    console.warn('Failed to load model from backend, creating empty model:', err);
-    return createEmptyModel();
+    // If network error or other issues, fallback to empty model with the requested name
+    console.warn('Failed to load model from backend, creating empty model with name:', modelName, err);
+    return createEmptyModel(modelName);
   }
 }
 

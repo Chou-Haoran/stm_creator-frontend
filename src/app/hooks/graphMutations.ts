@@ -154,7 +154,7 @@ export function buildStateFromAttributes(
         condition_upper: 1.0,
         condition_lower: 0.0,
         eks_condition_estimate: -9999,
-        elicitation_type: 'user-created',
+        elicitation_type: 'pilot region',
         attributes: attributes.imageUrl ? { imageUrl: attributes.imageUrl } : null,
     };
 }
