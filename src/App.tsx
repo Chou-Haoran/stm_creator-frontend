@@ -292,7 +292,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/editor" replace />} />
+        <Route path="/" element={<Home />} />
         <Route path="/editor" element={<GraphEditor />} />
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Navigate to="/editor" replace />} />
