@@ -42,11 +42,11 @@ export interface BMRGData {
     release_date: string;
     authorised_by: string;
     contributing_experts: any[];
-    region: string;
-    region_id: number;
+    //region: string;
+    //region_id: number;
     climate: string;
     ecosystem_type: string;
-    aus_eco_archetype_code: number;
+    //aus_eco_archetype_code: number;
     aus_eco_archetype_name: string;
     aus_eco_umbrella_code: number;
     peer_reviewed: string;
