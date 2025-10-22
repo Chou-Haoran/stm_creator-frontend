@@ -39,6 +39,7 @@ import NotFound from './pages/NotFound';
 // Onboarding
 import { Tour } from './extensions/onboarding/Tour';
 import { coachSteps } from './extensions/onboarding/coachmarks';
+import { useOnboarding } from './extensions/onboarding/useOnboarding';
 
 /** Graph Editor Page */
 function GraphEditor() {
@@ -53,22 +54,15 @@ function GraphEditor() {
   });
   const [isGuest, setIsGuest] = useState(false);
 
-  // Tour visibility (do not open until after auth)
+  // Onboarding state management
+  const onboarding = useOnboarding();
+
+  // Tour visibility - show after auth and model loading
   const [tourOpen, setTourOpen] = useState<boolean>(false);
-  const closeTour = () => setTourOpen(false);
-
-  // Open tour AFTER auth/guest gate, and AFTER the editor UI has painted
-  useEffect(() => {
-    if (!(auth || isGuest)) return;
-
-    // Use double rAF to ensure toolbar/panels have mounted and laid out
-    const id1 = requestAnimationFrame(() => {
-      const id2 = requestAnimationFrame(() => setTourOpen(true));
-      // store id2 on globalThis to avoid TS unused var complaint
-      (globalThis as any).__raf2 = id2;
-    });
-    return () => cancelAnimationFrame(id1);
-  }, [auth, isGuest]);
+  const closeTour = () => {
+    setTourOpen(false);
+    onboarding.complete();
+  };
 
   const {
     nodesWithCallbacks,
@@ -117,6 +111,24 @@ function GraphEditor() {
     exportToEKS,
     importFromEKS,
   } = useGraphEditor();
+
+  // Open tour AFTER auth/guest gate, model loading, and UI painting
+  useEffect(() => {
+    if (!(auth || isGuest)) return;
+    if (isLoading) return; // Wait for model to load
+    if (onboarding.finished) return; // Don't show if already completed
+
+    // Use double rAF to ensure toolbar/panels have mounted and laid out
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => {
+        setTourOpen(true);
+        onboarding.start();
+      });
+      // store id2 on globalThis to avoid TS unused var complaint
+      (globalThis as any).__raf2 = id2;
+    });
+    return () => cancelAnimationFrame(id1);
+  }, [auth, isGuest, isLoading, onboarding]);
 
   const handleCreateNewModel = (modelName: string) => {
     // Create new model with the specified name, jump to editor with model parameter
