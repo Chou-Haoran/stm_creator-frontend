@@ -152,7 +152,7 @@ export default function AuthPage({ onAuthenticated, onContinueGuest, onModelSele
             {tab === 'login' ? (
               <LoginForm onAuthenticated={handleAuthenticated} />
             ) : (
-              <SignupForm onAuthenticated={handleAuthenticated} />
+              <SignupForm />
             )}
           </div>
 
@@ -194,7 +194,6 @@ function LoginForm({ onAuthenticated }: { readonly onAuthenticated: (auth: AuthR
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isUnverified, setIsUnverified] = useState(false);
-  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
 
@@ -252,7 +251,7 @@ function LoginForm({ onAuthenticated }: { readonly onAuthenticated: (auth: AuthR
   );
 }
 
-function SignupForm({ onAuthenticated }: { readonly onAuthenticated: (auth: AuthResponse) => void }) {
+function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
