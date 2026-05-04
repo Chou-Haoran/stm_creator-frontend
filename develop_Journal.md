@@ -237,8 +237,6 @@ Implemented a comprehensive help modal system that allows users to submit help r
 - Developer email is configurable via props (defaults to 'dev@yourcompany.com').
 - Modal state is properly managed to prevent memory leaks.
 
----
-
 ## Entry — Image Upload for Node Editing
 **Date:** "2025-10-07"  
 **Author:** "Edward Zhang"  
@@ -705,3 +703,44 @@ The following were intentionally not changed in this task:
   - create edge -> open modal -> save transition
   - edit time values and confirm delta changes before save
   - save model and confirm backend round-trip preserves the computed delta
+
+---
+
+## Entry — Canvas Toolbar PNG Export
+**Date:** "2026-05-04"  
+**Author:** "Xinyu Zhang"  
+**Status:** In Progress
+
+### Summary
+Added a dedicated `Export PNG` action beside the existing `Export EKS` toolbar button. The new export captures the current React Flow viewport as a PNG while leaving the existing EKS JSON export workflow unchanged.
+
+### Goals
+- Preserve the current `Export EKS` behavior without changing its UI or data format.
+- Add a separate `Export PNG` button in the canvas toolbar.
+- Export only the current viewport rather than the full graph.
+- Exclude non-essential overlay UI from the PNG output.
+
+### Key Changes
+- **Files:** `src/App.tsx`, `src/app/components/GraphToolbar.tsx`, `package.json`, `package-lock.json`
+- **Toolbar UI:**
+  - Kept the existing `Export EKS` button unchanged.
+  - Added a new `Export PNG` button immediately beside it in `GraphToolbar`.
+- **PNG export logic:**
+  - Added `html-to-image` as a dependency to generate PNG output from the DOM.
+  - Implemented `handleExportPng` in `App.tsx` and passed it into `GraphToolbar`.
+  - Targeted the current `.react-flow` viewport for export instead of the full editor shell.
+  - Used DOM filtering to exclude:
+    - React Flow background grid
+    - `MiniMap`
+    - `Controls`
+    - edge comment bubbles
+    - remote cursor overlays
+- **File output:**
+  - PNG filename uses the current STM model name when available, with an ISO-style timestamp suffix.
+
+### Verification
+- Ran `npm run build` successfully after wiring the new toolbar button and export handler.
+
+### Notes
+- The PNG export intentionally captures the visible viewport only.
+- The existing EKS JSON import/export flow in `graphImportExport.ts` was left untouched.
