@@ -10,6 +10,7 @@ export interface Driver {
 interface ChainPart {
     chain_part: string;
     drivers: Driver[];
+    precondition?: string;
 }
 
 interface TransitionModalProps {
@@ -55,15 +56,18 @@ function uniqueDrivers(drivers: Driver[]): Driver[] {
 function fuzzyScore(query: string, label: string): number {
     const q = query.trim().toLowerCase();
     const value = label.toLowerCase();
+
     if (!q) {
         return 1;
     }
+
     if (value.includes(q)) {
         return 100 - value.indexOf(q);
     }
 
     let cursor = 0;
     let score = 0;
+
     for (const char of q) {
         const found = value.indexOf(char, cursor);
         if (found === -1) {
@@ -72,6 +76,7 @@ function fuzzyScore(query: string, label: string): number {
         score += 3;
         cursor = found + 1;
     }
+
     return score;
 }
 
@@ -81,11 +86,14 @@ function driverLabel(driver: Driver): string {
 
 function parseCustomDriver(raw: string): Driver | null {
     const value = raw.trim();
+
     if (!value) {
         return null;
     }
+
     const [group, ...rest] = value.includes(':') ? value.split(':') : ['Custom', value];
     const name = rest.join(':').trim();
+
     return name ? { driver_group: group.trim() || 'Custom', driver: name } : null;
 }
 
@@ -95,12 +103,14 @@ const CausalChainEditor = ({
     onRemoveDriver,
     onAddDriver,
     onAddChainPart,
+    onUpdatePrecondition,
 }: {
     causalChain: ChainPart[];
     driverOptions: Driver[];
     onRemoveDriver: (partIndex: number, driver: Driver) => void;
     onAddDriver: (partIndex: number, driver: Driver) => void;
     onAddChainPart: (name: string) => void;
+    onUpdatePrecondition: (partIndex: number, value: string) => void;
 }) => {
     const [searchByPart, setSearchByPart] = useState<Record<number, string>>({});
     const [newChainPart, setNewChainPart] = useState(CHAIN_PART_OPTIONS[0]);
@@ -110,6 +120,7 @@ const CausalChainEditor = ({
         const existing = new Set(
             (causalChain[partIndex]?.drivers ?? []).map((driver) => driverLabel(driver).toLowerCase()),
         );
+
         return driverOptions
             .map((driver) => ({ driver, score: fuzzyScore(query, driverLabel(driver)) }))
             .filter(({ driver, score }) => score > 0 && !existing.has(driverLabel(driver).toLowerCase()))
@@ -122,6 +133,7 @@ const CausalChainEditor = ({
         <div className="causal-chain-container">
             <div className="causal-chain-heading">
                 <h4 className="causal-chain-title">Causal Chain Drivers</h4>
+
                 <div className="add-chain-part">
                     <select
                         value={newChainPart}
@@ -129,9 +141,12 @@ const CausalChainEditor = ({
                         className="add-chain-part-select"
                     >
                         {CHAIN_PART_OPTIONS.map((part) => (
-                            <option key={part} value={part}>{part}</option>
+                            <option key={part} value={part}>
+                                {part}
+                            </option>
                         ))}
                     </select>
+
                     <button
                         type="button"
                         className="btn btn-small btn-primary"
@@ -150,11 +165,13 @@ const CausalChainEditor = ({
 
             {causalChain.map((chainPart, index) => {
                 if (!chainPart.chain_part) return null;
+
                 const groupedDrivers = chainPart.drivers.reduce((groups, driver) => {
                     const group = driver.driver_group || 'Custom';
                     groups[group] = groups[group] ? [...groups[group], driver] : [driver];
                     return groups;
                 }, {} as Record<string, Driver[]>);
+
                 const query = searchByPart[index] ?? '';
                 const suggestions = getSuggestions(index, query);
                 const customDriver = parseCustomDriver(query);
@@ -170,16 +187,23 @@ const CausalChainEditor = ({
                             <div className="driver-search-row">
                                 <input
                                     value={query}
-                                    onChange={(event) => setSearchByPart((prev) => ({ ...prev, [index]: event.target.value }))}
+                                    onChange={(event) =>
+                                        setSearchByPart((prev) => ({
+                                            ...prev,
+                                            [index]: event.target.value,
+                                        }))
+                                    }
                                     placeholder="Search or type Group: driver"
                                     className="driver-search-input"
                                 />
+
                                 <button
                                     type="button"
                                     className="btn btn-small btn-primary"
                                     onClick={() => {
                                         const driver = suggestions[0] ?? customDriver;
                                         if (!driver) return;
+
                                         onAddDriver(index, driver);
                                         setSearchByPart((prev) => ({ ...prev, [index]: '' }));
                                     }}
@@ -211,10 +235,12 @@ const CausalChainEditor = ({
                                 <div key={groupName} className="driver-group">
                                     <div className="driver-group-content">
                                         <div className="driver-group-name">{groupName}</div>
+
                                         <ul className="driver-list">
                                             {drivers.map((driver) => (
                                                 <li key={driverLabel(driver)} className="driver-item">
                                                     <span className="driver-name">{driver.driver}</span>
+
                                                     <button
                                                         type="button"
                                                         className="driver-delete"
@@ -236,16 +262,27 @@ const CausalChainEditor = ({
                                     <p className="empty-causal-chain-message">No drivers in this chain part.</p>
                                 </div>
                             )}
+
+                            <div className="precondition-section">
+                                <label className="precondition-label" htmlFor={`precondition-${index}`}>
+                                    Precondition
+                                </label>
+
+                                <textarea
+                                    id={`precondition-${index}`}
+                                    className="precondition-input"
+                                    value={chainPart.precondition ?? ''}
+                                    onChange={(event) => onUpdatePrecondition(index, event.target.value)}
+                                    placeholder="Example: high fuel load, dry season, recent drought..."
+                                    rows={2}
+                                />
+                            </div>
                         </div>
                     </div>
                 );
             })}
 
-            {totalDrivers === 0 && causalChain.length > 0 && (
-                <div className="empty-causal-chain">
-                    <p className="empty-causal-chain-message">No causal chain drivers available for this transition.</p>
-                </div>
-            )}
+
         </div>
     );
 };
@@ -261,6 +298,7 @@ export function TransitionModal({
 }: TransitionModalProps) {
     const [transitionData, setTransitionData] = useState<TransitionData | null>(null);
     const [activeTab, setActiveTab] = useState<'basic' | 'causal-chain'>('basic');
+
     const mergedDriverOptions = useMemo(
         () => uniqueDrivers([...driverOptions, ...DEFAULT_DRIVER_OPTIONS]),
         [driverOptions],
@@ -277,14 +315,20 @@ export function TransitionModal({
         if (!transitionData) return;
 
         const { name, value } = e.target;
-        const numericValue = name === 'time_25' || name === 'time_100' || name === 'transition_delta' || name === 'likelihood_25' || name === 'likelihood_100'
-            ? parseFloat(value)
-            : value;
+        const numericValue =
+            name === 'time_25' ||
+            name === 'time_100' ||
+            name === 'transition_delta' ||
+            name === 'likelihood_25' ||
+            name === 'likelihood_100'
+                ? parseFloat(value)
+                : value;
 
         setTransitionData((prev) => {
             if (!prev) return null;
 
             const nextTransition = { ...prev, [name]: numericValue } as TransitionData;
+
             if (
                 name === 'time_25' ||
                 name === 'time_100' ||
@@ -310,6 +354,7 @@ export function TransitionModal({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (transitionData) {
             const computedDelta = calcTransitionDelta(
                 transitionData.likelihood_25,
@@ -328,15 +373,20 @@ export function TransitionModal({
     const handleRemoveDriver = (partIndex: number, driverToRemove: Driver) => {
         setTransitionData((prev) => {
             if (!prev) return prev;
+
             const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
                 if (index !== partIndex) return part;
+
                 return {
                     ...part,
                     drivers: part.drivers.filter(
-                        (driver) => driver.driver !== driverToRemove.driver || driver.driver_group !== driverToRemove.driver_group,
+                        (driver) =>
+                            driver.driver !== driverToRemove.driver ||
+                            driver.driver_group !== driverToRemove.driver_group,
                     ),
                 };
             });
+
             return { ...prev, causal_chain: nextChain };
         });
     };
@@ -344,13 +394,19 @@ export function TransitionModal({
     const handleAddDriver = (partIndex: number, driverToAdd: Driver) => {
         setTransitionData((prev) => {
             if (!prev) return prev;
+
             const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
                 if (index !== partIndex) return part;
+
                 const exists = part.drivers.some(
-                    (driver) => driver.driver === driverToAdd.driver && driver.driver_group === driverToAdd.driver_group,
+                    (driver) =>
+                        driver.driver === driverToAdd.driver &&
+                        driver.driver_group === driverToAdd.driver_group,
                 );
+
                 return exists ? part : { ...part, drivers: [...part.drivers, driverToAdd] };
             });
+
             return { ...prev, causal_chain: nextChain };
         });
     };
@@ -358,11 +414,37 @@ export function TransitionModal({
     const handleAddChainPart = (name: string) => {
         setTransitionData((prev) => {
             if (!prev) return prev;
+
             const nextChain = [
                 ...((prev.causal_chain ?? []) as ChainPart[]),
-                { chain_part: name, drivers: [] },
+                {
+                    chain_part: name,
+                    drivers: [],
+                    precondition: '',
+                },
             ];
+
             return { ...prev, causal_chain: nextChain };
+        });
+    };
+
+    const handleUpdatePrecondition = (partIndex: number, value: string) => {
+        setTransitionData((prev) => {
+            if (!prev) return prev;
+
+            const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
+                if (index !== partIndex) return part;
+
+                return {
+                    ...part,
+                    precondition: value,
+                };
+            });
+
+            return {
+                ...prev,
+                causal_chain: nextChain,
+            };
         });
     };
 
@@ -406,7 +488,9 @@ export function TransitionModal({
                         <div className="state-name">{stateNames[transitionData.start_state_id]}</div>
                         <div className="state-id">State ID: {transitionData.start_state_id}</div>
                     </div>
+
                     <div className="state-arrow">-&gt;</div>
+
                     <div className="state-info">
                         <div className="state-name">{stateNames[transitionData.end_state_id]}</div>
                         <div className="state-id">State ID: {transitionData.end_state_id}</div>
@@ -421,6 +505,7 @@ export function TransitionModal({
                     >
                         Basic Info
                     </button>
+
                     <button
                         type="button"
                         onClick={() => setActiveTab('causal-chain')}
@@ -502,6 +587,7 @@ export function TransitionModal({
                             onRemoveDriver={handleRemoveDriver}
                             onAddDriver={handleAddDriver}
                             onAddChainPart={handleAddChainPart}
+                            onUpdatePrecondition={handleUpdatePrecondition}
                         />
                     )}
 
@@ -509,6 +595,7 @@ export function TransitionModal({
                         <button type="button" onClick={onClose} className="btn btn-secondary">
                             Cancel
                         </button>
+
                         <button type="submit" className="btn btn-primary">
                             Update
                         </button>

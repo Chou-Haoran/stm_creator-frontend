@@ -59,6 +59,7 @@ import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import { Tour } from './extensions/onboarding/Tour';
 import { coachSteps } from './extensions/onboarding/coachmarks';
 import { useOnboarding } from './extensions/onboarding/useOnboarding';
+import { CONDITION_CLASS_ORDER, CONDITION_CLASS_COLOURS } from './utils/conditionColours';
 
 type NodeLockState = Record<
   string,
@@ -748,14 +749,12 @@ function GraphEditor() {
   // Swatch colours mirror the rendered node colours from customNode.css
   // (.class-color-1 .. .class-color-6). Keep these in sync if those change
   // — the legend is meant to be a faithful preview of the canvas.
-  const legendItems = [
-    { cls: 'Class I', label: 'Reference', bg: '#f0fdf4', border: '#bbf7d0' },
-    { cls: 'Class II', label: 'Class II', bg: '#f7fee7', border: '#d9f99d' },
-    { cls: 'Class III', label: 'Class III', bg: '#fefce8', border: '#fef08a' },
-    { cls: 'Class IV', label: 'Class IV', bg: '#fffbeb', border: '#fde68a' },
-    { cls: 'Class V', label: 'Class V', bg: '#fff7ed', border: '#fed7aa' },
-    { cls: 'Class VI', label: 'Class VI', bg: '#fef2f2', border: '#fecaca' },
-  ];
+  const legendItems = CONDITION_CLASS_ORDER.map((className) => ({
+    cls: className,
+    label: CONDITION_CLASS_COLOURS[className].label,
+    bg: CONDITION_CLASS_COLOURS[className].background,
+    border: CONDITION_CLASS_COLOURS[className].border,
+  }));
 
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!auth?.token || !modelName || !canvasAreaRef.current) {
@@ -830,13 +829,13 @@ function GraphEditor() {
 
       const anchor = document.createElement('a');
       anchor.href = dataUrl;
-      anchor.download = `${filenameBase}-${timestamp}.png`;
+      anchor.download = `${filenameBase}-${timestamp}-powerpoint-export.png`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
     } catch (error) {
-      console.error('Failed to export PNG', error);
-      window.alert('PNG export failed. Please try again.');
+      console.error('Failed to export canvas for PowerPoint', error);
+      window.alert('PowerPoint image export failed. Please try again.');
     }
   };
 
