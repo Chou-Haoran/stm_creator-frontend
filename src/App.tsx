@@ -5,6 +5,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react';
+import { toPng } from 'html-to-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -788,6 +789,57 @@ function GraphEditor() {
     }
   };
 
+  const handleExportPng = async () => {
+    const canvasArea = canvasAreaRef.current;
+    if (!canvasArea) {
+      window.alert('Canvas is not ready for export yet.');
+      return;
+    }
+
+    const reactFlowRoot = canvasArea.querySelector('.react-flow') as HTMLElement | null;
+    if (!reactFlowRoot) {
+      window.alert('Could not find the current canvas viewport.');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filenameBase = bmrgData?.stm_name?.trim() || 'stm-canvas';
+    const backgroundColor = getComputedStyle(canvasArea).backgroundColor;
+
+    try {
+      const dataUrl = await toPng(reactFlowRoot, {
+        backgroundColor,
+        cacheBust: true,
+        width: reactFlowRoot.clientWidth,
+        height: reactFlowRoot.clientHeight,
+        pixelRatio: Math.min(globalThis.devicePixelRatio || 1, 2),
+        filter: (node) => {
+          if (!(node instanceof Element)) {
+            return true;
+          }
+
+          return !(
+            node.classList.contains('react-flow__background') ||
+            node.classList.contains('react-flow__minimap') ||
+            node.classList.contains('react-flow__controls') ||
+            node.classList.contains('edge-comment-foreignobject') ||
+            node.classList.contains('edge-comment-bubble')
+          );
+        },
+      });
+
+      const anchor = document.createElement('a');
+      anchor.href = dataUrl;
+      anchor.download = `${filenameBase}-${timestamp}.png`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (error) {
+      console.error('Failed to export PNG', error);
+      window.alert('PNG export failed. Please try again.');
+    }
+  };
+
   return (
     <div className="app-container">
       <div data-tour="toolbar">
@@ -803,6 +855,7 @@ function GraphEditor() {
           onOpenMilestone={openVersionManager}
           onImportEKS={importFromEKS}
           onExportEKS={exportToEKS}
+          onExportPNG={handleExportPng}
           onRelayout={handleReLayout}
           onToggleSelfTransitions={toggleSelfTransitions}
           onOpenVersionCompare={() => setIsVersionComparisonOpen(true)}

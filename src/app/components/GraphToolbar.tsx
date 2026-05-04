@@ -18,6 +18,7 @@ interface GraphToolbarProps {
   readonly onOpenVersionCompare?: () => void;
   readonly onImportEKS: (file: File) => void | Promise<void>;
   readonly onExportEKS: () => void;
+  readonly onExportPNG: () => void | Promise<void>;
   readonly onRelayout: () => void;
   readonly onApplyLayout?: (strategy: LayoutStrategy) => void | Promise<void>;
   readonly onToggleSelfTransitions: () => void;
@@ -55,6 +56,7 @@ export function GraphToolbar({
   onOpenVersionCompare,
   onImportEKS,
   onExportEKS,
+  onExportPNG,
   onToggleSelfTransitions,
   edgeCreationMode,
   isSaving,
@@ -167,6 +169,10 @@ export function GraphToolbar({
 
       <button data-tour="export-eks" onClick={onExportEKS} className="tb-btn">
         Export EKS
+      </button>
+
+      <button data-tour="export-png" onClick={() => { void onExportPNG(); }} className="tb-btn">
+        Export PNG
       </button>
 
       {onApplyLayout && (
