@@ -2,7 +2,7 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Edge, EdgeChange, EdgeMouseHandler, applyEdgeChanges } from '@xyflow/react';
 
-import { TransitionData, BMRGData } from '../../utils/stateTransition';
+import { TransitionData, BMRGData, calcTransitionDelta } from '../../utils/stateTransition';
 import { updateTransition } from '../../utils/dataLoader';
 import { parseStateId, nextId, findStateByGraphId, getGraphStateId } from './graph-utils';
 
@@ -59,7 +59,7 @@ export function createTransitionCreator({
                 likelihood_100: 0,
                 notes: '',
                 causal_chain: [],
-                transition_delta: 0,
+                transition_delta: calcTransitionDelta(1, 0, 1, 0) ?? 0,
             };
 
             const nextData: BMRGData = {

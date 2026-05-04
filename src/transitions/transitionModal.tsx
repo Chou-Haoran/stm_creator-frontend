@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { TransitionData } from '../utils/stateTransition';
+import { TransitionData, calcTransitionDelta } from '../utils/stateTransition';
 import './transitionModal.css';
 
 export interface Driver {
@@ -277,17 +277,51 @@ export function TransitionModal({
         if (!transitionData) return;
 
         const { name, value } = e.target;
-        const numericValue = name === 'time_25' || name === 'time_100' || name === 'transition_delta'
+        const numericValue = name === 'time_25' || name === 'time_100' || name === 'transition_delta' || name === 'likelihood_25' || name === 'likelihood_100'
             ? parseFloat(value)
             : value;
 
-        setTransitionData((prev) => prev ? { ...prev, [name]: numericValue } : null);
+        setTransitionData((prev) => {
+            if (!prev) return null;
+
+            const nextTransition = { ...prev, [name]: numericValue } as TransitionData;
+            if (
+                name === 'time_25' ||
+                name === 'time_100' ||
+                name === 'likelihood_25' ||
+                name === 'likelihood_100'
+            ) {
+                const computedDelta = calcTransitionDelta(
+                    nextTransition.likelihood_25,
+                    nextTransition.likelihood_100,
+                    nextTransition.time_25,
+                    nextTransition.time_100,
+                );
+
+                return {
+                    ...nextTransition,
+                    transition_delta: computedDelta ?? nextTransition.transition_delta,
+                };
+            }
+
+            return nextTransition;
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (transitionData) {
-            onSave(transitionData);
+            const computedDelta = calcTransitionDelta(
+                transitionData.likelihood_25,
+                transitionData.likelihood_100,
+                transitionData.time_25,
+                transitionData.time_100,
+            );
+
+            onSave({
+                ...transitionData,
+                transition_delta: computedDelta ?? transitionData.transition_delta,
+            });
         }
     };
 

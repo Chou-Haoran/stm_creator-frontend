@@ -2,7 +2,7 @@
 import { Edge, EdgeChange, EdgeMouseHandler, applyEdgeChanges } from '@xyflow/react';
 
 import { AppNode } from '../../nodes/types';
-import { TransitionData, BMRGData, transitionsToEdges } from '../../utils/stateTransition';
+import { TransitionData, BMRGData, transitionsToEdges, calcTransitionDelta } from '../../utils/stateTransition';
 import { updateTransition } from '../../utils/dataLoader';
 import { DeltaFilterOption } from '../types';
 import { filterEdgesByDelta, nextId, parseStateId, findStateByGraphId, getGraphStateId } from './graph-utils';
@@ -57,7 +57,7 @@ export function createTransitionCreator({
             likelihood_100: 0,
             notes: '',
             causal_chain: [],
-            transition_delta: 0,
+            transition_delta: calcTransitionDelta(1, 0, 1, 0) ?? 0,
         };
 
         const updatedTransitions = [...data.transitions, newTransition];

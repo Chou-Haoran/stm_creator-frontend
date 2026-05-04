@@ -34,3 +34,28 @@ export function collectAllStateIds(states: StateData[]): number[] {
     return ids;
   });
 }
+
+
+export function calcTransitionDelta(
+  likelihood25: number | null | undefined,
+  likelihood100: number | null | undefined,
+  time25: number | null | undefined,
+  time100: number | null | undefined,
+): number | null {
+  if (
+    likelihood25 == null ||
+    likelihood100 == null ||
+    time25 == null ||
+    time100 == null
+  ) {
+    return null;
+  }
+
+  const denominator = time100 - time25;
+  if (denominator === 0) {
+    return null;
+  }
+
+  const delta = (likelihood100 - likelihood25) / denominator;
+  return Number.isFinite(delta) ? delta : null;
+}

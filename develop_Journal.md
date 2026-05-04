@@ -585,3 +585,123 @@ Integrated the Save Model workflow with the authenticated backend API. Login now
 - ☐ 401/403 responses surface authorization messaging in the UI.
 - ☐ 500+ responses surface server error messaging in the UI.
 - ☐ Happy-path save returns the parsed `SaveModelResponse` to callers.
+
+---
+
+## Entry — Transition Delta Auto-Calculation from Likelihood and Time
+**Date:** "2026-05-04"  
+**Author:** "Xinyu Zhang"  
+**Status:** In Progress
+
+### Summary
+Wired `transition_delta` to the same formula now used by the backend so the frontend no longer relies on a manually entered delta value during transition creation or transition save. The change was intentionally kept narrow: one shared helper plus three call sites.
+
+### Goal
+- Make frontend transition delta calculation match backend behavior.
+- Stop treating `transition_delta` as the source of truth when saving transitions.
+- Keep UI structure, edge rendering, filters, and API payload shape unchanged.
+- Reduce regression risk by limiting the edit surface to four files.
+
+### Formula
+Frontend now uses the same calculation as backend `calcTransitionDelta`:
+
+`transition_delta = (likelihood_100 - likelihood_25) / (time_100 - time_25)`
+
+Guard rails match backend behavior:
+- Return `null` if any of the four inputs are missing.
+- Return `null` if `time_100 === time_25`.
+- Return `null` for non-finite numeric results.
+
+### Files Changed
+
+#### 1) `src/utils/stateTransition/helpers.ts`
+Added a shared `calcTransitionDelta(...)` helper so transition delta calculation is defined in one place instead of being duplicated inline.
+
+What changed:
+- Added `calcTransitionDelta(likelihood25, likelihood100, time25, time100)`.
+- Matched backend null/zero-denominator/non-finite guards.
+- Kept the helper inside the existing `stateTransition` helper barrel so current import patterns still work.
+
+Why this file changed:
+- New and edit flows both need the same delta formula.
+- A single helper reduces drift between code paths and lowers bug risk.
+
+Risk control:
+- No existing helper behavior was changed.
+- Only one additive export was introduced.
+
+#### 2) `src/app/hooks/graphTransitions.ts`
+Updated the transition creation path used by the hook-based editor flow so new transitions no longer hardcode `transition_delta: 0`.
+
+What changed:
+- Imported `calcTransitionDelta` from `utils/stateTransition`.
+- Replaced the literal `transition_delta: 0` in the new `TransitionData` object.
+- New transitions now compute delta from the default values already assigned in that function:
+  - `time_25: 1`
+  - `time_100: 0`
+  - `likelihood_25: 1`
+  - `likelihood_100: 0`
+
+Why this file changed:
+- Without this update, newly created transitions in this path would start with a stale delta value that disagrees with backend calculation.
+
+Risk control:
+- No changes to IDs, node lookup, edge rebuild, modal opening, or state update flow.
+- Only the initial `transition_delta` assignment changed.
+
+#### 3) `src/app/hooks/edgeHandlers.ts`
+Updated the alternate transition creation path so it uses the same computed delta as the hook-based creator.
+
+What changed:
+- Imported `calcTransitionDelta` from `utils/stateTransition`.
+- Replaced the literal `transition_delta: 0` in the `newTransition` object.
+- New transitions created through this path now derive delta from the default time/likelihood values.
+
+Why this file changed:
+- The codebase has two transition creation paths; both need identical behavior to avoid inconsistent initial delta values.
+
+Risk control:
+- No changes to edge click handling, modal open behavior, selection flow, edge remapping, or save behavior.
+- Only the initial delta field assignment changed.
+
+#### 4) `src/transitions/transitionModal.tsx`
+Updated transition editing logic so save operations no longer trust manually entered delta values.
+
+What changed:
+- Imported `calcTransitionDelta`.
+- Expanded numeric parsing in `handleChange` to recognize `likelihood_25` and `likelihood_100` if those fields are ever provided by the UI.
+- When `time_25`, `time_100`, `likelihood_25`, or `likelihood_100` changes, the modal now recomputes `transition_delta` in local state.
+- In `handleSubmit`, the modal recomputes delta again immediately before calling `onSave(...)`.
+- The submitted transition object now uses the computed delta instead of blindly trusting the existing `transition_delta` field.
+
+Why this file changed:
+- This is the central frontend save path for edited transitions.
+- Recomputing on submit guarantees the saved transition matches backend expectations even if the delta input field is still present in the UI.
+
+Risk control:
+- Did not change tab behavior, driver editing, notes handling, modal layout, or delete flow.
+- Did not remove the existing delta input field, avoiding unnecessary UI churn.
+- Kept the existing fallback behavior when computation returns `null`: the current `transition_delta` value is preserved instead of forcing a breaking shape change.
+
+### Behavioral Outcome
+After this change:
+- Newly created transitions no longer start with a hardcoded delta of `0`.
+- Edited transitions recompute delta from likelihood/time before save.
+- Frontend local behavior is aligned with backend delta derivation.
+- Manual delta entry is no longer the authoritative save source, even though the input is still present in the UI.
+
+### Out of Scope
+The following were intentionally not changed in this task:
+- No new likelihood input UI was added.
+- No existing delta input UI was removed.
+- No filter logic was modified.
+- No edge styling logic was modified.
+- No backend files were changed in this frontend task.
+
+### Verification Notes
+- Code paths reviewed: new transition creation in both editor flows and modal submit logic.
+- Attempted frontend build verification, but local environment lacked `tsc`, so full compile validation could not be completed in-session.
+- Because of that environment limitation, runtime smoke testing in the app is still recommended for:
+  - create edge -> open modal -> save transition
+  - edit time values and confirm delta changes before save
+  - save model and confirm backend round-trip preserves the computed delta
