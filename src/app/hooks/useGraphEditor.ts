@@ -102,26 +102,6 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         setDeltaFilter: state.setDeltaFilter,
     });
 
-    const modelActions = createModelActions({
-        getData: () => state.bmrgData,
-        setIsSaving: state.setIsSaving,
-        setNodes: state.setNodes,
-        handleNodeLabelChange,
-        handleNodeClick: nodeHandlers.handleNodeClick,
-        setError: state.setError,
-        setIsLoading: state.setIsLoading,
-        setData: state.setBmrgData,
-    });
-
-    const deleteActions = createDeleteActions({
-        getData: () => state.bmrgData,
-        setData: state.setBmrgData,
-        setNodes: state.setNodes,
-        rebuildEdges,
-        handleNodeLabelChange,
-        handleNodeClick: nodeHandlers.handleNodeClick,
-    });
-
     const versionActions = createVersionActions({
         getData: () => state.bmrgData,
         setData: state.setBmrgData,
@@ -132,6 +112,29 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         getVersions: () => state.versions,
         setVersions: state.setVersions,
         setIsVersionModalOpen: state.setIsVersionModalOpen,
+    });
+
+    const modelActions = createModelActions({
+        getData: () => state.bmrgData,
+        setIsSaving: state.setIsSaving,
+        setNodes: state.setNodes,
+        handleNodeLabelChange,
+        handleNodeClick: nodeHandlers.handleNodeClick,
+        setError: state.setError,
+        setIsLoading: state.setIsLoading,
+        setData: state.setBmrgData,
+        onSaveSnapshot: (data) => {
+            versionActions.saveVersionSnapshot(data, undefined, { openManager: false });
+        },
+    });
+
+    const deleteActions = createDeleteActions({
+        getData: () => state.bmrgData,
+        setData: state.setBmrgData,
+        setNodes: state.setNodes,
+        rebuildEdges,
+        handleNodeLabelChange,
+        handleNodeClick: nodeHandlers.handleNodeClick,
     });
 
     const importExportActions = createImportExportActions({
@@ -147,6 +150,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     const layoutActions = createLayoutActions({
         getData: () => state.bmrgData,
         setNodes: state.setNodes,
+        setData: state.setBmrgData,
     });
 
     useEffect(() => {

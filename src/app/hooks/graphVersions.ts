@@ -21,6 +21,10 @@ interface Dependencies {
     setIsVersionModalOpen: Dispatch<SetStateAction<boolean>>;
 }
 
+interface SaveVersionOptions {
+    openManager?: boolean;
+}
+
 function cloneData(data: BMRGData): BMRGData {
     return JSON.parse(JSON.stringify(data)) as BMRGData;
 }
@@ -57,8 +61,12 @@ export function createVersionActions({
     const openVersionManager = () => setIsVersionModalOpen(true);
     const closeVersionManager = () => setIsVersionModalOpen(false);
 
-    const saveCurrentVersion = (customName?: string) => {
-        const data = getData();
+    const saveVersionSnapshot = (
+        data: BMRGData,
+        customName?: string,
+        options: SaveVersionOptions = {},
+    ) => {
+        const { openManager = true } = options;
         if (!data) {
             return;
         }
@@ -75,7 +83,18 @@ export function createVersionActions({
 
         const next = persistVersion(version);
         setVersions(next);
-        setIsVersionModalOpen(true);
+        if (openManager) {
+            setIsVersionModalOpen(true);
+        }
+    };
+
+    const saveCurrentVersion = (customName?: string, options?: SaveVersionOptions) => {
+        const data = getData();
+        if (!data) {
+            return;
+        }
+
+        saveVersionSnapshot(data, customName, options);
     };
 
     const restoreVersion = (id: string) => {
@@ -107,6 +126,7 @@ export function createVersionActions({
         openVersionManager,
         closeVersionManager,
         saveCurrentVersion,
+        saveVersionSnapshot,
         restoreVersion,
         deleteVersion,
     };

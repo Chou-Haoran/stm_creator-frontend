@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { searchDrivers, type DriverSearchResult } from '../app/api/drivers';
 import { TransitionData, calcTransitionDelta } from '../utils/stateTransition';
 import './transitionModal.css';
 
 export interface Driver {
+    driver_id?: number;
     driver: string;
     driver_group: string;
+    description?: string | null;
 }
 
 interface ChainPart {
@@ -97,6 +100,15 @@ function parseCustomDriver(raw: string): Driver | null {
     return name ? { driver_group: group.trim() || 'Custom', driver: name } : null;
 }
 
+function driverFromSearchResult(result: DriverSearchResult): Driver {
+    return {
+        driver_id: result.id,
+        driver: result.name,
+        driver_group: result.driver_group?.trim() || 'Uncategorised',
+        description: result.description,
+    };
+}
+
 const CausalChainEditor = ({
     causalChain,
     driverOptions,
@@ -114,14 +126,65 @@ const CausalChainEditor = ({
 }) => {
     const [searchByPart, setSearchByPart] = useState<Record<number, string>>({});
     const [newChainPart, setNewChainPart] = useState(CHAIN_PART_OPTIONS[0]);
-    const totalDrivers = causalChain.reduce((count, part) => count + part.drivers.length, 0);
+    const [remoteDriversByPart, setRemoteDriversByPart] = useState<Record<number, Driver[]>>({});
+    const [loadingByPart, setLoadingByPart] = useState<Record<number, boolean>>({});
+
+    useEffect(() => {
+        const searchableEntries = Object.entries(searchByPart)
+            .map(([partIndex, query]) => [Number(partIndex), query.trim()] as const)
+            .filter(([, query]) => query.length >= 2);
+        const activeIndexes = new Set(searchableEntries.map(([partIndex]) => partIndex));
+
+        setRemoteDriversByPart((prev) => Object.fromEntries(
+            Object.entries(prev).filter(([partIndex]) => activeIndexes.has(Number(partIndex))),
+        ));
+
+        if (searchableEntries.length === 0) {
+            setLoadingByPart({});
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            searchableEntries.forEach(([partIndex, query]) => {
+                setLoadingByPart((prev) => ({ ...prev, [partIndex]: true }));
+                searchDrivers(query, { limit: 12, signal: controller.signal })
+                    .then((results) => {
+                        setRemoteDriversByPart((prev) => ({
+                            ...prev,
+                            [partIndex]: results.map(driverFromSearchResult),
+                        }));
+                    })
+                    .catch((error: unknown) => {
+                        if (error instanceof DOMException && error.name === 'AbortError') {
+                            return;
+                        }
+                        setRemoteDriversByPart((prev) => ({ ...prev, [partIndex]: [] }));
+                    })
+                    .finally(() => {
+                        if (!controller.signal.aborted) {
+                            setLoadingByPart((prev) => ({ ...prev, [partIndex]: false }));
+                        }
+                    });
+            });
+        }, 250);
+
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [searchByPart]);
 
     const getSuggestions = (partIndex: number, query: string): Driver[] => {
         const existing = new Set(
             (causalChain[partIndex]?.drivers ?? []).map((driver) => driverLabel(driver).toLowerCase()),
         );
+        const availableDrivers = uniqueDrivers([
+            ...(remoteDriversByPart[partIndex] ?? []),
+            ...driverOptions,
+        ]);
 
-        return driverOptions
+        return availableDrivers
             .map((driver) => ({ driver, score: fuzzyScore(query, driverLabel(driver)) }))
             .filter(({ driver, score }) => score > 0 && !existing.has(driverLabel(driver).toLowerCase()))
             .sort((a, b) => b.score - a.score || driverLabel(a.driver).localeCompare(driverLabel(b.driver)))
@@ -228,6 +291,12 @@ const CausalChainEditor = ({
                                             <small>{driver.driver_group}</small>
                                         </button>
                                     ))}
+                                </div>
+                            )}
+
+                            {query && suggestions.length === 0 && loadingByPart[index] && (
+                                <div className="driver-suggestions">
+                                    <div className="driver-suggestion-status">Searching drivers...</div>
                                 </div>
                             )}
 

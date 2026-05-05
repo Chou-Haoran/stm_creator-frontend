@@ -6,7 +6,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import { toPng } from 'html-to-image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import '@xyflow/react/dist/style.css';
@@ -19,7 +19,8 @@ import { EdgeCreationHint } from './app/components/EdgeCreationHint';
 import { ErrorState } from './app/components/ErrorState';
 import { LoadingState } from './app/components/LoadingState';
 import { TipsPanel } from './app/components/TipsPanel';
-import { CommentPanel } from './app/components/CommentPanel';
+import { CommentPanel, type CommentEntry } from './app/components/CommentPanel';
+import { fetchComments } from './app/api/comments';
 import {
     CanvasContextMenu,
     type CanvasContextMenuState,
@@ -87,6 +88,9 @@ function GraphEditor() {
   const [isVersionComparisonOpen, setIsVersionComparisonOpen] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<CommentEntry[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
   // Sidebar legend collapse/expand state. Persisted in localStorage so the
   // user's choice sticks across sessions; defaults to expanded.
   const [legendCollapsed, setLegendCollapsed] = useState<boolean>(() => {
@@ -106,8 +110,6 @@ function GraphEditor() {
       // ignore quota / private-mode failures — the toggle still works
     }
   }, [legendCollapsed]);
-  const [commentsVersion, setCommentsVersion] = useState(0);
-
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
     const token = authStorage.getToken();
     const user = authStorage.getUser();
@@ -379,15 +381,39 @@ function GraphEditor() {
     }
   };
 
+  const refreshComments = useCallback(async () => {
+    if (!auth?.token || !modelName) {
+      setComments([]);
+      setCommentsError(null);
+      setCommentsLoading(false);
+      return;
+    }
+
+    setCommentsLoading(true);
+    setCommentsError(null);
+    try {
+      const nextComments = await fetchComments(modelName);
+      setComments(nextComments);
+    } catch (error_) {
+      setCommentsError(error_ instanceof Error ? error_.message : 'Failed to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [auth?.token, modelName]);
+
   useEffect(() => {
-    if (!modelName) return;
+    void refreshComments();
+  }, [refreshComments]);
+
+  useEffect(() => {
+    if (!auth?.token || !modelName) return;
 
     const timer = window.setInterval(() => {
-      setCommentsVersion((prev) => prev + 1);
-    }, 1000);
+      void refreshComments();
+    }, 15000);
 
     return () => window.clearInterval(timer);
-  }, [modelName]);
+  }, [auth?.token, modelName, refreshComments]);
 
   const commentStats = useMemo(() => {
     const empty = {
@@ -396,40 +422,36 @@ function GraphEditor() {
     };
     if (!modelName) return empty;
 
-    try {
-      const raw = localStorage.getItem(`stmCreator.comments.${modelName}`);
-      const comments = raw ? JSON.parse(raw) : [];
-      const openComments = Array.isArray(comments)
-        ? comments.filter((comment: any) => typeof comment?.text === 'string' && !comment?.resolved)
-        : [];
-      const nodeCounts: Record<string, number> = {};
-      const edgeCounts: Record<string, number> = {};
+    const openComments = comments.filter((comment) => !comment.resolved && typeof comment.body === 'string');
+    const nodeCounts: Record<string, number> = {};
+    const edgeCounts: Record<string, number> = {};
 
-      nodesWithCallbacks.forEach((node) => {
-        const label = ((node.data as any)?.label || '').trim();
-        if (!label) return;
-        const mentionToken = `@[${label}]`;
-        nodeCounts[node.id] = openComments.filter((comment: any) =>
-          comment.text.includes(mentionToken)
-        ).length;
-      });
+    nodesWithCallbacks.forEach((node) => {
+      const label = String(node.data.label || '').trim();
+      if (!label) return;
+      const graphStateId = parseStateId(node.id);
+      const mentionToken = `@[${label}]`;
+      nodeCounts[node.id] = openComments.filter((comment) =>
+        (comment.entityType === 'node' && comment.entityId === graphStateId) ||
+        comment.body.includes(mentionToken)
+      ).length;
+    });
 
-      edges.forEach((edge) => {
-        const srcNode = nodesWithCallbacks.find((node) => node.id === edge.source);
-        const tgtNode = nodesWithCallbacks.find((node) => node.id === edge.target);
-        const sourceLabel = ((srcNode?.data as any)?.label || edge.source).trim();
-        const targetLabel = ((tgtNode?.data as any)?.label || edge.target).trim();
-        const mentionToken = `@[${sourceLabel} -> ${targetLabel}]`;
-        edgeCounts[edge.id] = openComments.filter((comment: any) =>
-          comment.text.includes(mentionToken)
-        ).length;
-      });
+    edges.forEach((edge) => {
+      const srcNode = nodesWithCallbacks.find((node) => node.id === edge.source);
+      const tgtNode = nodesWithCallbacks.find((node) => node.id === edge.target);
+      const sourceLabel = String(srcNode?.data.label || edge.source).trim();
+      const targetLabel = String(tgtNode?.data.label || edge.target).trim();
+      const transitionId = /^transition-(\d+)$/.exec(edge.id)?.[1];
+      const mentionToken = `@[${sourceLabel} -> ${targetLabel}]`;
+      edgeCounts[edge.id] = openComments.filter((comment) =>
+        (comment.entityType === 'edge' && comment.entityId === Number(transitionId)) ||
+        comment.body.includes(mentionToken)
+      ).length;
+    });
 
-      return { nodeCounts, edgeCounts };
-    } catch {
-      return empty;
-    }
-  }, [modelName, nodesWithCallbacks, edges, commentsVersion]);
+    return { nodeCounts, edgeCounts };
+  }, [modelName, nodesWithCallbacks, edges, comments]);
 
   const nodesForRender = nodesWithCallbacks.map((node) => ({
     ...node,
@@ -457,17 +479,19 @@ function GraphEditor() {
 
   const driverOptions = useMemo<Driver[]>(() => {
     const drivers = bmrgData?.transitions.flatMap((transition) =>
-      (transition.causal_chain ?? []).flatMap((part: any) =>
-        Array.isArray(part?.drivers) ? part.drivers : [],
-      ),
+      (transition.causal_chain ?? []).flatMap((part: unknown) => {
+        const maybePart = part as { drivers?: unknown };
+        return Array.isArray(maybePart.drivers) ? maybePart.drivers : [];
+      }),
     ) ?? [];
 
     const seen = new Set<string>();
-    return drivers.filter((driver: any): driver is Driver => {
-      if (!driver || typeof driver.driver !== 'string' || typeof driver.driver_group !== 'string') {
+    return drivers.filter((driver: unknown): driver is Driver => {
+      const candidate = driver as Partial<Driver> | null;
+      if (!candidate || typeof candidate.driver !== 'string' || typeof candidate.driver_group !== 'string') {
         return false;
       }
-      const key = `${driver.driver_group}:::${driver.driver}`.toLowerCase();
+      const key = `${candidate.driver_group}:::${candidate.driver}`.toLowerCase();
       if (seen.has(key)) {
         return false;
       }
@@ -519,6 +543,11 @@ function GraphEditor() {
   };
 
   const emitNodePositionPatch = (graphStateId: number, position: { x: number; y: number }) => {
+    applyRemoteNodePatch(`state-${graphStateId}`, graphStateId, 'position', {
+      x: position.x,
+      y: position.y,
+    });
+
     if (!auth?.token || !modelName) {
       return;
     }
@@ -812,7 +841,7 @@ function GraphEditor() {
         width: reactFlowRoot.clientWidth,
         height: reactFlowRoot.clientHeight,
         pixelRatio: Math.min(globalThis.devicePixelRatio || 1, 2),
-        filter: (node) => {
+        filter: (node: HTMLElement) => {
           if (!(node instanceof Element)) {
             return true;
           }
@@ -1089,17 +1118,22 @@ function GraphEditor() {
             {commentsOpen ? (
               <CommentPanel
                 onClose={() => setCommentsOpen(false)}
-                nodes={nodesForRender.map((n) => ({ id: n.id, label: (n.data as any).label || n.id }))}
+                comments={comments}
+                onCommentsChange={setComments}
+                onReload={refreshComments}
+                isLoading={commentsLoading}
+                error={commentsError}
+                canComment={Boolean(auth?.token && modelName)}
+                nodes={nodesForRender.map((n) => ({ id: n.id, label: n.data.label || n.id }))}
                 edges={edges.map((e) => {
                   const srcNode = nodesForRender.find((n) => n.id === e.source);
                   const tgtNode = nodesForRender.find((n) => n.id === e.target);
                   return {
                     id: e.id,
-                    sourceLabel: (srcNode?.data as any)?.label || e.source,
-                    targetLabel: (tgtNode?.data as any)?.label || e.target,
+                    sourceLabel: srcNode?.data.label || e.source,
+                    targetLabel: tgtNode?.data.label || e.target,
                   };
                 })}
-                userEmail={auth?.user.email || 'Guest'}
                 modelName={modelName || 'unnamed'}
               />
             ) : tipsOpen ? (

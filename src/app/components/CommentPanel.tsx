@@ -1,15 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import {
+    createComment as createBackendComment,
+    deleteComment as deleteBackendComment,
+    resolveComment as resolveBackendComment,
+    type BackendComment,
+} from '../api/comments';
 
-/** A single comment entry */
-export interface CommentEntry {
-    id: string;
-    text: string;
-    author: string;
-    createdAt: string;
-    resolved?: boolean;
-    resolvedAt?: string;
-    resolvedBy?: string;
-}
+export type CommentEntry = BackendComment;
 
 /** An @-mentionable item (node or edge) */
 interface MentionItem {
@@ -20,47 +17,45 @@ interface MentionItem {
 
 interface CommentPanelProps {
     onClose: () => void;
+    comments: CommentEntry[];
+    onCommentsChange: (comments: CommentEntry[]) => void;
+    onReload?: () => Promise<void> | void;
+    isLoading?: boolean;
+    error?: string | null;
+    canComment?: boolean;
     /** Available nodes: { id, label } */
     nodes: { id: string; label: string }[];
     /** Available edges: { id, sourceLabel, targetLabel } */
     edges: { id: string; sourceLabel: string; targetLabel: string }[];
-    /** Current user email for authorship */
-    userEmail: string;
-    /** Model name used as localStorage key */
     modelName: string;
 }
 
-// localStorage helpers
-function loadComments(modelName: string): CommentEntry[] {
-    try {
-        const raw = localStorage.getItem(`stmCreator.comments.${modelName}`);
-        return raw ? (JSON.parse(raw) as CommentEntry[]) : [];
-    } catch { return []; }
-}
-
-function saveComments(modelName: string, comments: CommentEntry[]) {
-    localStorage.setItem(`stmCreator.comments.${modelName}`, JSON.stringify(comments));
-}
-
-export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: CommentPanelProps) {
-    const [comments, setComments] = useState<CommentEntry[]>(() => loadComments(modelName));
+export function CommentPanel({
+    onClose,
+    comments,
+    onCommentsChange,
+    onReload,
+    isLoading = false,
+    error = null,
+    canComment = true,
+    nodes,
+    edges,
+    modelName,
+}: CommentPanelProps) {
     const [text, setText] = useState('');
     const [showMentions, setShowMentions] = useState(false);
     const [mentionFilter, setMentionFilter] = useState('');
-    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
     const [showResolved, setShowResolved] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Reload comments when model changes
-    useEffect(() => {
-        setComments(loadComments(modelName));
-    }, [modelName]);
-
     // Build the mention list from nodes and edges
-    const mentionItems: MentionItem[] = [
+    const mentionItems = useMemo<MentionItem[]>(() => [
         ...nodes.map(n => ({ type: 'node' as const, id: n.id, label: n.label })),
         ...edges.map(e => ({ type: 'edge' as const, id: e.id, label: `${e.sourceLabel} -> ${e.targetLabel}` })),
-    ];
+    ], [nodes, edges]);
 
     const filteredMentions = mentionItems.filter(m =>
         m.label.toLowerCase().includes(mentionFilter.toLowerCase())
@@ -101,63 +96,57 @@ export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: Co
         textareaRef.current?.focus();
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!text.trim()) return;
-        const entry: CommentEntry = {
-            id: `comment-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
-            text: text.trim(),
-            author: userEmail || 'Guest',
-            createdAt: new Date().toISOString(),
-            resolved: false,
-        };
-        const next = [entry, ...comments];
-        setComments(next);
-        saveComments(modelName, next);
-        setText('');
+        setIsSubmitting(true);
+        setActionError(null);
+        try {
+            const created = await createBackendComment(modelName, text.trim());
+            onCommentsChange([created, ...comments.filter((comment) => comment.id !== created.id)]);
+            setText('');
+            await onReload?.();
+        } catch (submitError) {
+            setActionError(submitError instanceof Error ? submitError.message : 'Failed to create comment.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    const updateComments = (next: CommentEntry[]) => {
-        setComments(next);
-        saveComments(modelName, next);
+    const resolveComment = async (commentId: number) => {
+        setActionError(null);
+        try {
+            await resolveBackendComment(modelName, commentId);
+            const updatedAt = new Date().toISOString();
+            onCommentsChange(comments.map((comment) =>
+                comment.id === commentId
+                    ? { ...comment, resolved: true, updatedAt }
+                    : comment,
+            ));
+            await onReload?.();
+        } catch (resolveError) {
+            setActionError(resolveError instanceof Error ? resolveError.message : 'Failed to resolve comment.');
+        }
     };
 
-    const resolveComment = (commentId: string) => {
-        const next = comments.map(c =>
-            c.id === commentId
-                ? {
-                    ...c,
-                    resolved: true,
-                    resolvedAt: new Date().toISOString(),
-                    resolvedBy: userEmail || 'Guest',
-                }
-                : c
-        );
-        updateComments(next);
-    };
-
-    const reopenComment = (commentId: string) => {
-        const next = comments.map(c =>
-            c.id === commentId
-                ? {
-                    ...c,
-                    resolved: false,
-                    resolvedAt: undefined,
-                    resolvedBy: undefined,
-                }
-                : c
-        );
-        updateComments(next);
-    };
-
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (!pendingDeleteId) return;
-        const next = comments.filter(c => c.id !== pendingDeleteId);
-        updateComments(next);
-        setPendingDeleteId(null);
+        setActionError(null);
+        try {
+            await deleteBackendComment(modelName, pendingDeleteId);
+            onCommentsChange(comments.filter(c => c.id !== pendingDeleteId));
+            setPendingDeleteId(null);
+            await onReload?.();
+        } catch (deleteError) {
+            setActionError(deleteError instanceof Error ? deleteError.message : 'Failed to delete comment.');
+        }
     };
 
-    const unresolvedComments = comments.filter(c => !c.resolved);
-    const resolvedComments = comments.filter(c => c.resolved);
+    const sortedComments = useMemo(
+        () => [...comments].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+        [comments],
+    );
+    const unresolvedComments = sortedComments.filter(c => !c.resolved);
+    const resolvedComments = sortedComments.filter(c => c.resolved);
 
     /** Render comment text with @[...] mentions highlighted */
     const renderText = (raw: string) => {
@@ -187,12 +176,13 @@ export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: Co
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey && !showMentions) {
                                 e.preventDefault();
-                                handleSubmit();
+                                void handleSubmit();
                             }
                         }}
                         placeholder="Write a comment. Use @ to mention nodes/edges"
                         style={textareaStyle}
                         rows={3}
+                        disabled={!canComment || isSubmitting}
                     />
                     {/* @mention dropdown — positioned below textarea using its bounding rect */}
                     {showMentions && filteredMentions.length > 0 && textareaRef.current && (() => {
@@ -217,16 +207,21 @@ export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: Co
                         );
                     })()}
                 </div>
-                <button onClick={handleSubmit} style={submitBtn} disabled={!text.trim()}>
-                    Submit
+                <button onClick={() => void handleSubmit()} style={submitBtn} disabled={!text.trim() || !canComment || isSubmitting}>
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
+                {(error || actionError) && (
+                    <div style={errorText}>{actionError ?? error}</div>
+                )}
             </div>
 
             <div style={dividerStyle} />
 
             {/* Comment history */}
             <div style={historySection}>
-                {comments.length === 0 ? (
+                {isLoading ? (
+                    <p style={emptyText}>Loading comments...</p>
+                ) : comments.length === 0 ? (
                     <p style={emptyText}>No comments yet.</p>
                 ) : (
                     <>
@@ -236,13 +231,13 @@ export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: Co
                             unresolvedComments.map(c => (
                                 <div key={c.id} style={commentCard}>
                                     <div style={commentHeader}>
-                                        <span style={authorStyle}>{c.author}</span>
+                                        <span style={authorStyle}>{c.author.email}</span>
                                         <span style={dateStyle}>{new Date(c.createdAt).toLocaleString()}</span>
                                     </div>
-                                    <div style={commentText}>{renderText(c.text)}</div>
+                                    <div style={commentText}>{renderText(c.body)}</div>
                                     <div style={commentActions}>
                                         <button
-                                            onClick={() => resolveComment(c.id)}
+                                            onClick={() => void resolveComment(c.id)}
                                             style={resolveBtnStyle}
                                         >
                                             Resolve
@@ -270,20 +265,14 @@ export function CommentPanel({ onClose, nodes, edges, userEmail, modelName }: Co
                                 {showResolved && resolvedComments.map(c => (
                                     <div key={c.id} style={resolvedCommentCard}>
                                         <div style={commentHeader}>
-                                            <span style={authorStyle}>{c.author}</span>
+                                            <span style={authorStyle}>{c.author.email}</span>
                                             <span style={dateStyle}>{new Date(c.createdAt).toLocaleString()}</span>
                                         </div>
                                         <div style={resolvedMetaText}>
-                                            Resolved{c.resolvedBy ? ` by ${c.resolvedBy}` : ''}{c.resolvedAt ? ` at ${new Date(c.resolvedAt).toLocaleString()}` : ''}
+                                            Resolved{c.updatedAt ? ` at ${new Date(c.updatedAt).toLocaleString()}` : ''}
                                         </div>
-                                        <div style={commentText}>{renderText(c.text)}</div>
+                                        <div style={commentText}>{renderText(c.body)}</div>
                                         <div style={commentActions}>
-                                            <button
-                                                onClick={() => reopenComment(c.id)}
-                                                style={reopenBtnStyle}
-                                            >
-                                                Reopen
-                                            </button>
                                             <button
                                                 onClick={() => setPendingDeleteId(c.id)}
                                                 style={deleteBtnStyle}
@@ -388,6 +377,12 @@ const submitBtn: React.CSSProperties = {
     alignSelf: 'flex-end',
 };
 
+const errorText: React.CSSProperties = {
+    color: '#dc2626',
+    fontSize: 11,
+    lineHeight: 1.4,
+};
+
 const dividerStyle: React.CSSProperties = {
     height: 1,
     background: 'var(--border, #e5e7eb)',
@@ -457,16 +452,6 @@ const resolveBtnStyle: React.CSSProperties = {
     background: 'none',
     border: 'none',
     color: '#059669',
-    fontSize: 11,
-    cursor: 'pointer',
-    padding: 0,
-    fontWeight: 600,
-};
-
-const reopenBtnStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    color: '#2563eb',
     fontSize: 11,
     cursor: 'pointer',
     padding: 0,

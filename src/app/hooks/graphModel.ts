@@ -14,6 +14,7 @@ interface ModelDeps {
     setError: Dispatch<SetStateAction<string | null>>;
     setIsLoading: Dispatch<SetStateAction<boolean>>;
     setData: Dispatch<SetStateAction<BMRGData | null>>;
+    onSaveSnapshot?: (data: BMRGData) => void;
 }
 
 export interface SaveModelResponse {
@@ -32,6 +33,7 @@ export function createModelActions({
     setError,
     setIsLoading,
     setData,
+    onSaveSnapshot,
 }: ModelDeps) {
     const initialise = async () => {
         try {
@@ -100,10 +102,12 @@ export function createModelActions({
             }
 
             const result = (await response.json()) as SaveModelResponse;
+            let snapshotData = data;
 
             // Refresh data after successful save to ensure consistency
             try {
                 const refreshed = await loadBMRGData();
+                snapshotData = refreshed;
                 setData(refreshed);
                 const nodes = statesToNodes(
                     refreshed.states,
@@ -117,6 +121,8 @@ export function createModelActions({
             }
 
             // 保存成功后跳转到对应的editor页面
+            onSaveSnapshot?.(snapshotData);
+
             if (data.stm_name) {
                 globalThis.location.href = `/editor?model=${encodeURIComponent(data.stm_name)}`;
             }

@@ -343,6 +343,12 @@
     white-space: nowrap;
 }
 
+.driver-suggestion-status {
+    color: #6c757d;
+    font-size: 11px;
+    padding: 4px 2px;
+}
+
 .driver-group {
     padding: 0 10px;
 }
