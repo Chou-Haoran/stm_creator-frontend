@@ -171,8 +171,13 @@ export function GraphToolbar({
         Export EKS
       </button>
 
-      <button data-tour="export-png" onClick={() => { void onExportPNG(); }} className="tb-btn">
-        Export PNG
+      <button
+        data-tour="export-png"
+        onClick={() => { void onExportPNG(); }}
+        className="tb-btn"
+        title="Export the current canvas as a PNG image for embedding in PowerPoint"
+      >
+        Export for PowerPoint
       </button>
 
       {onApplyLayout && (
