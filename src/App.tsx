@@ -59,7 +59,6 @@ import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/AdminDashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import Forbidden from './pages/Forbidden';
-import ReviewerDashboard from './pages/ReviewerDashboard';
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 
 import { Tour } from './extensions/onboarding/Tour';
@@ -1395,7 +1394,11 @@ function GraphEditor() {
         currentData={bmrgData}
         onClose={() => setIsVersionComparisonOpen(false)}
       />
-      <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} />
+      <ModelListModal
+        isOpen={isModelListOpen}
+        onClose={() => setIsModelListOpen(false)}
+        userRole={auth?.user.role ?? null}
+      />
       <ModelPermissionsModal
         isOpen={isModelPermissionsOpen}
         modelName={modelName}
@@ -1414,12 +1417,6 @@ function GraphEditor() {
 }
 
 function App() {
-  const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-    const token = authStorage.getToken();
-    const user = authStorage.getUser();
-    return token && user ? <>{children}</> : <Navigate to="/editor" replace />;
-  };
-
   return (
     <Router>
       <Routes>
@@ -1430,7 +1427,6 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forbidden" element={<Forbidden />} />
         <Route path="/notfound" element={<NotFound />} />
-        <Route path="/dashboard" element={<RequireAuth><ReviewerDashboard /></RequireAuth>} />
         <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
         <Route path="*" element={<Navigate to="/notfound" replace />} />
       </Routes>

@@ -1,5 +1,5 @@
 import { API_BASE, apiFetch } from '../auth/api';
-import type { ModelRole } from '../../constants/roles';
+import { isModelRole, type ModelRole } from '../../constants/roles';
 
 export interface ModelSummary {
   id: number;
@@ -10,6 +10,53 @@ export interface ModelSummary {
   is_template: boolean;
   authorised_by?: string;
   model_role?: ModelRole;
+}
+
+function normaliseModelSummaries(data: unknown): ModelSummary[] {
+  const rawModels = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { models?: unknown })?.models)
+      ? (data as { models: unknown[] }).models
+      : [];
+
+  return rawModels
+    .map((model, index): ModelSummary | null => {
+      if (typeof model === 'string') {
+        return {
+          id: index + 1,
+          stm_name: model,
+          is_template: false,
+        };
+      }
+
+      if (!model || typeof model !== 'object') {
+        return null;
+      }
+
+      const record = model as Record<string, unknown>;
+      const stmName = record.stm_name ?? record.name ?? record.model_name;
+      if (typeof stmName !== 'string' || !stmName.trim()) {
+        return null;
+      }
+
+      const numericId = typeof record.id === 'number'
+        ? record.id
+        : typeof record.id === 'string' && record.id.trim()
+          ? Number(record.id)
+          : Number.NaN;
+
+      return {
+        id: Number.isFinite(numericId) ? numericId : index + 1,
+        stm_name: stmName,
+        version: typeof record.version === 'string' ? record.version : undefined,
+        ecosystem_type: typeof record.ecosystem_type === 'string' ? record.ecosystem_type : undefined,
+        region: typeof record.region === 'string' ? record.region : undefined,
+        is_template: typeof record.is_template === 'boolean' ? record.is_template : false,
+        authorised_by: typeof record.authorised_by === 'string' ? record.authorised_by : undefined,
+        model_role: isModelRole(record.model_role) ? record.model_role : undefined,
+      };
+    })
+    .filter((model): model is ModelSummary => model !== null);
 }
 
 async function readError(res: Response): Promise<string> {
@@ -54,8 +101,7 @@ export async function deleteTransition(name: string, transitionId: number): Prom
 export const getAssignedModels = async (): Promise<ModelSummary[]> => {
   const res = await apiFetch(`${API_BASE}/models/assigned`);
   if (!res.ok) throw new Error('Failed to fetch assigned models');
-  const data = await res.json();
-  return data.models;
+  return normaliseModelSummaries(await res.json());
 };
 
 export const getTemplates = async (): Promise<ModelSummary[]> => {

@@ -306,17 +306,6 @@ export function GraphToolbar({
         >
           {showSelfTransitions ? 'Hide Self-Trans' : 'Show Self-Trans'}
         </button>
-
-        {onOpenModelList && (
-          <button
-            type="button"
-            data-tour="open-model"
-            onClick={() => closeAfter(onOpenModelList)}
-            className="tb-btn"
-          >
-            Open Model
-          </button>
-        )}
       </ToolbarDropdown>
 
       <CreateModelModal
@@ -368,10 +357,10 @@ export function GraphToolbar({
         </button>
       )}
       {userEmail && (
-        <a href="/dashboard" className="tb-btn tb-global-action" style={{ textDecoration: 'none', color: 'inherit' }} title="My Models" aria-label="My Models">
+        <button type="button" onClick={onOpenModelList} className="tb-btn tb-global-action" disabled={!onOpenModelList} title="Models" aria-label="Models">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2.5 4.5h11v8h-11z"/><path d="M4.5 2.5h7v2"/></svg>
           <span>Models</span>
-        </a>
+        </button>
       )}
 
       <div className="tb-sep" />
