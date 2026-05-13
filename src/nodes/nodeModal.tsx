@@ -10,6 +10,7 @@ import {
     type BiomeType,
     type TemplateRef,
 } from './templates';
+import './nodeModal.css';
 
 export interface NodeAttributes {
     stateName: string;
@@ -27,7 +28,6 @@ interface NodeModalProps {
     readonly isOpen: boolean;
     readonly onClose: () => void;
     readonly onSave: (attributes: NodeAttributes) => void;
-    readonly onPatch?: (field: string, value: unknown) => void;
     readonly onDelete?: () => void;
     readonly onDuplicate?: () => void;
     readonly initialValues?: NodeAttributes;
@@ -53,6 +53,53 @@ function normaliseImageUrls(attributes: NodeAttributes | undefined): string[] {
     return attributes.imageUrl ? [attributes.imageUrl] : [];
 }
 
+function parseConditionBounds(condition: string | undefined): { lower: string; upper: string } {
+    const regex = /Condition\s*range:\s*([\d.+-]+)\s*-\s*([\d.+-]+)/i;
+    const match = regex.exec(condition ?? '');
+
+    return match ? { lower: match[1], upper: match[2] } : { lower: '', upper: '' };
+}
+
+function getDraftFingerprint(
+    attributes: NodeAttributes,
+    lowerBound: string,
+    upperBound: string,
+): string {
+    return JSON.stringify({
+        stateName: attributes.stateName.trim(),
+        stateNumber: attributes.stateNumber.trim(),
+        vastClass: attributes.vastClass,
+        note: attributes.note?.trim() ?? '',
+        imageUrls: normaliseImageUrls(attributes),
+        templateId: attributes.template?.id ?? '',
+        lowerBound: lowerBound.trim(),
+        upperBound: upperBound.trim(),
+    });
+}
+
+function getInitialFingerprint(initialValues: NodeAttributes | undefined): string {
+    if (!initialValues) {
+        return getDraftFingerprint({
+            stateName: '',
+            stateNumber: '',
+            vastClass: '',
+            condition: '',
+            imageUrl: '',
+            imageUrls: [],
+            note: '',
+        }, '', '');
+    }
+
+    const imageUrls = normaliseImageUrls(initialValues);
+    const bounds = parseConditionBounds(initialValues.condition);
+
+    return getDraftFingerprint({
+        ...initialValues,
+        imageUrl: imageUrls[0] ?? '',
+        imageUrls,
+    }, bounds.lower, bounds.upper);
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -66,7 +113,6 @@ export function NodeModal({
     isOpen,
     onClose,
     onSave,
-    onPatch,
     onDelete,
     onDuplicate,
     initialValues,
@@ -97,15 +143,9 @@ export function NodeModal({
                 imageUrls,
             });
 
-            const regex = /Condition\s*range:\s*([\d.+-]+)\s*-\s*([\d.+-]+)/i;
-            const match = regex.exec(initialValues.condition ?? '');
-            if (match) {
-                setLowerBound(match[1]);
-                setUpperBound(match[2]);
-            } else {
-                setLowerBound('');
-                setUpperBound('');
-            }
+            const bounds = parseConditionBounds(initialValues.condition);
+            setLowerBound(bounds.lower);
+            setUpperBound(bounds.upper);
 
             const storedRef = initialValues.template;
             const storedTemplate = storedRef ? TEMPLATES_BY_ID[storedRef.id] : undefined;
@@ -150,10 +190,6 @@ export function NodeModal({
         const nextUrls = imageUrls.filter(Boolean);
         const imageUrl = nextUrls[0] ?? '';
         setAttributes((prev) => ({ ...prev, imageUrl, imageUrls: nextUrls }));
-        if (isEditing) {
-            onPatch?.('imageUrls', nextUrls);
-            onPatch?.('imageUrl', imageUrl);
-        }
     };
 
     const handleImageUpload = async (files: FileList | null) => {
@@ -174,18 +210,12 @@ export function NodeModal({
         setPrimaryGroupKey('');
         setTemplateId('');
         setAttributes((prev) => ({ ...prev, template: undefined }));
-        if (isEditing) {
-            onPatch?.('template', undefined);
-        }
     };
 
     const handlePrimaryGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setPrimaryGroupKey(e.target.value);
         setTemplateId('');
         setAttributes((prev) => ({ ...prev, template: undefined }));
-        if (isEditing) {
-            onPatch?.('template', undefined);
-        }
     };
 
     const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -194,9 +224,6 @@ export function NodeModal({
         const template = TEMPLATES_BY_ID[id];
         if (!template) {
             setAttributes((prev) => ({ ...prev, template: undefined }));
-            if (isEditing) {
-                onPatch?.('template', undefined);
-            }
             return;
         }
 
@@ -208,14 +235,8 @@ export function NodeModal({
                 template: ref,
                 stateName: shouldPrefillName ? template.label : prev.stateName,
             };
-            if (isEditing && shouldPrefillName) {
-                onPatch?.('stateName', next.stateName);
-            }
             return next;
         });
-        if (isEditing) {
-            onPatch?.('template', ref);
-        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -224,9 +245,6 @@ export function NodeModal({
             ...prev,
             [name]: value,
         }));
-        if (isEditing) {
-            onPatch?.(name, value);
-        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -247,6 +265,16 @@ export function NodeModal({
         });
     };
 
+    const hasDraftChanges = getDraftFingerprint(attributes, lowerBound, upperBound) !== getInitialFingerprint(initialValues);
+
+    const handleRequestClose = () => {
+        if (hasDraftChanges && !window.confirm('Discard your unsaved node changes?')) {
+            return;
+        }
+
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     const imageUrls = normaliseImageUrls(attributes);
@@ -255,224 +283,258 @@ export function NodeModal({
     const boundsInvalid = Number.isNaN(lower) || Number.isNaN(upper) || lower >= upper;
 
     return (
-        <div style={overlayStyle}>
-            <div style={modalStyle}>
-                <h2 style={{ marginTop: 0 }}>{isEditing ? 'Edit Node' : 'Add New Node'}</h2>
+        <div className="node-modal-overlay">
+            <div className="node-modal">
+                <header className="node-modal-header">
+                    <div>
+                        <p className="node-modal-kicker">{isEditing ? 'Node editor' : 'Create node'}</p>
+                        <h2>{isEditing ? 'Edit Node' : 'Create Node'}</h2>
+                    </div>
+                    <button
+                        type="button"
+                        className="node-modal-close"
+                        onClick={handleRequestClose}
+                        aria-label="Close node editor"
+                        title="Close"
+                    >
+                        X
+                    </button>
+                </header>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={sectionStyle}>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                            Template <span style={{ color: '#6b7280', fontWeight: 400 }}>(optional)</span>
+                <form onSubmit={handleSubmit} className="node-modal-form">
+                    <section className="node-modal-section template">
+                        <div className="node-modal-section-heading">
+                            <div>
+                                <h3>
+                                    Template
+                                    <span className="node-modal-optional-badge">Optional</span>
+                                </h3>
+                                <p>Optional classification helpers for faster state setup.</p>
+                            </div>
+                            {attributes.template && (
+                                <span className="node-modal-selected-template">{attributes.template.label}</span>
+                            )}
                         </div>
 
-                        <label style={labelStyle}>
-                            <span style={labelTextStyle}>Biome</span>
-                            <select value={biome} onChange={handleBiomeChange} style={selectStyle}>
-                                <option value="">Select a biome</option>
-                                {BIOME_ORDER.map((b) => (
-                                    <option key={b} value={b}>
-                                        {BIOMES[b].label}
+                        <div className="node-modal-grid three">
+                            <label className="node-field">
+                                <span>Biome</span>
+                                <select value={biome} onChange={handleBiomeChange}>
+                                    <option value="">Select a biome</option>
+                                    {BIOME_ORDER.map((b) => (
+                                        <option key={b} value={b}>
+                                            {BIOMES[b].label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="node-field">
+                                <span>Primary Layer</span>
+                                <select
+                                    value={primaryGroupKey}
+                                    onChange={handlePrimaryGroupChange}
+                                    disabled={!biome}
+                                >
+                                    <option value="">
+                                        {biome ? 'Select a primary layer' : 'Select a biome first'}
                                     </option>
-                                ))}
-                            </select>
-                        </label>
+                                    {primaryGroupOptions.map((opt) => (
+                                        <option key={opt.key} value={opt.key}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
 
-                        <label style={labelStyle}>
-                            <span style={labelTextStyle}>Primary Layer</span>
-                            <select
-                                value={primaryGroupKey}
-                                onChange={handlePrimaryGroupChange}
-                                disabled={!biome}
-                                style={{ ...selectStyle, backgroundColor: biome ? 'white' : '#f3f4f6' }}
-                            >
-                                <option value="">
-                                    {biome ? 'Select a primary layer' : 'Select a biome first'}
-                                </option>
-                                {primaryGroupOptions.map((opt) => (
-                                    <option key={opt.key} value={opt.key}>
-                                        {opt.label}
+                            <label className="node-field">
+                                <span>Template</span>
+                                <select
+                                    value={templateId}
+                                    onChange={handleTemplateChange}
+                                    disabled={!primaryGroupKey}
+                                >
+                                    <option value="">
+                                        {primaryGroupKey ? 'Select a template' : 'Select a primary layer first'}
                                     </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label style={{ display: 'block' }}>
-                            <span style={labelTextStyle}>Template</span>
-                            <select
-                                value={templateId}
-                                onChange={handleTemplateChange}
-                                disabled={!primaryGroupKey}
-                                style={{ ...selectStyle, backgroundColor: primaryGroupKey ? 'white' : '#f3f4f6' }}
-                            >
-                                <option value="">
-                                    {primaryGroupKey ? 'Select a template' : 'Select a primary layer first'}
-                                </option>
-                                {templateOptions.map((template) => (
-                                    <option key={template.id} value={template.id}>
-                                        {template.shortLabel}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        {attributes.template && (
-                            <div style={{ marginTop: 8, fontSize: 12, color: '#374151', fontStyle: 'italic' }}>
-                                Selected: {attributes.template.label}
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={fieldStyle}>
-                        <label style={labelStyle}>
-                            State Name:
-                            <input type="text" name="stateName" value={attributes.stateName} onChange={handleChange} style={inputStyle} required />
-                        </label>
-                    </div>
-
-                    <div style={fieldStyle}>
-                        <label style={labelStyle}>
-                            State Number:
-                            <input type="text" name="stateNumber" value={attributes.stateNumber} onChange={handleChange} style={inputStyle} />
-                        </label>
-                    </div>
-
-                    <div style={fieldStyle}>
-                        <label style={labelStyle}>
-                            Condition class:
-                            <select name="vastClass" value={attributes.vastClass} onChange={handleChange} style={selectStyle}>
-                                <option value="">Select a class</option>
-                                {CONDITION_CLASSES.map((conditionClass) => (
-                                    <option key={conditionClass} value={conditionClass}>
-                                        {conditionClass}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-
-                    <div style={fieldStyle}>
-                        <label htmlFor="condition-lower" style={labelStyle}>Condition Lower Bound:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="conditionLower"
-                            id="condition-lower"
-                            value={lowerBound}
-                            onChange={(e) => {
-                                setLowerBound(e.target.value);
-                                if (isEditing) {
-                                    onPatch?.('conditionLower', e.target.value);
-                                }
-                            }}
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    <div style={fieldStyle}>
-                        <label htmlFor="condition-upper" style={labelStyle}>Condition Upper Bound:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="conditionUpper"
-                            id="condition-upper"
-                            value={upperBound}
-                            onChange={(e) => {
-                                setUpperBound(e.target.value);
-                                if (isEditing) {
-                                    onPatch?.('conditionUpper', e.target.value);
-                                }
-                            }}
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    {boundsInvalid && lowerBound && upperBound && (
-                        <div style={{ color: '#d9534f', marginBottom: 10 }}>
-                            Lower Bound must be less than Upper Bound.
+                                    {templateOptions.map((template) => (
+                                        <option key={template.id} value={template.id}>
+                                            {template.shortLabel}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
                         </div>
-                    )}
+                    </section>
 
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #eee' }}>
-                        <div style={{ marginBottom: 8, fontWeight: 600 }}>Note</div>
-                        <textarea
-                            name="note"
-                            placeholder="Add a brief note about this state"
-                            value={attributes.note ?? ''}
-                            onChange={handleChange}
-                            style={{ ...inputStyle, minHeight: 64, resize: 'vertical' }}
-                        />
-                    </div>
-
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #eee' }}>
-                        <div style={{ marginBottom: 8, fontWeight: 600 }}>State Images</div>
-
-                        {imageUrls.length > 0 ? (
-                            <div style={galleryStyle}>
-                                {imageUrls.map((url, index) => (
-                                    <div key={`${url.slice(0, 32)}-${index}`} style={thumbWrapStyle}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPreviewImage(url)}
-                                            style={thumbButtonStyle}
-                                            title="Preview image"
-                                        >
-                                            <img src={url} alt={`State preview ${index + 1}`} style={thumbImageStyle} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveImage(index)}
-                                            style={removeImageButtonStyle}
-                                            title="Remove image"
-                                        >
-                                            x
-                                        </button>
-                                    </div>
-                                ))}
+                    <section className="node-modal-section">
+                        <div className="node-modal-section-heading">
+                            <div>
+                                <h3>State Details</h3>
+                                <p>Core identity and condition values for this state.</p>
                             </div>
-                        ) : (
-                            <div style={{ marginBottom: 10, color: '#666' }}>No image set.</div>
-                        )}
+                        </div>
 
-                        <label style={{ display: 'block' }}>
-                            <span style={{ display: 'block', marginBottom: 6 }}>Upload images:</span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) => {
-                                    void handleImageUpload(e.target.files);
-                                    e.target.value = '';
-                                }}
-                                style={{ cursor: 'pointer' }}
+                        <div className="node-modal-grid two">
+                            <label className="node-field">
+                                <span>State Name</span>
+                                <input
+                                    type="text"
+                                    name="stateName"
+                                    value={attributes.stateName}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </label>
+
+                            <label className="node-field">
+                                <span>State Number</span>
+                                <input
+                                    type="text"
+                                    name="stateNumber"
+                                    value={attributes.stateNumber}
+                                    onChange={handleChange}
+                                />
+                            </label>
+                        </div>
+
+                        <div className="node-modal-grid three">
+                            <label className="node-field">
+                                <span>Condition Class</span>
+                                <select name="vastClass" value={attributes.vastClass} onChange={handleChange}>
+                                    <option value="">Select a class</option>
+                                    {CONDITION_CLASSES.map((conditionClass) => (
+                                        <option key={conditionClass} value={conditionClass}>
+                                            {conditionClass}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="node-field">
+                                <span>Lower Bound</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="conditionLower"
+                                    id="condition-lower"
+                                    value={lowerBound}
+                                    onChange={(event) => setLowerBound(event.target.value)}
+                                />
+                            </label>
+
+                            <label className="node-field">
+                                <span>Upper Bound</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="conditionUpper"
+                                    id="condition-upper"
+                                    value={upperBound}
+                                    onChange={(event) => setUpperBound(event.target.value)}
+                                />
+                            </label>
+                        </div>
+
+                        {boundsInvalid && lowerBound && upperBound && (
+                            <div className="node-modal-error">
+                                Lower bound must be less than upper bound.
+                            </div>
+                        )}
+                    </section>
+
+                    <section className="node-modal-section">
+                        <div className="node-modal-section-heading">
+                            <div>
+                                <h3>Notes And Images</h3>
+                                <p>Reference material saved only when the node is confirmed.</p>
+                            </div>
+                        </div>
+
+                        <label className="node-field">
+                            <span>Note</span>
+                            <textarea
+                                name="note"
+                                placeholder="Add a brief note about this state"
+                                value={attributes.note ?? ''}
+                                onChange={handleChange}
                             />
                         </label>
-                    </div>
 
-                    <div style={buttonRowStyle}>
-                        {isEditing && onDuplicate && (
-                            <button type="button" onClick={onDuplicate} style={duplicateButtonStyle}>
-                                Duplicate State
+                        <div className="node-image-area">
+                            {imageUrls.length > 0 ? (
+                                <div className="node-image-gallery">
+                                    {imageUrls.map((url, index) => (
+                                        <div key={`${url.slice(0, 32)}-${index}`} className="node-image-thumb">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPreviewImage(url)}
+                                                className="node-image-preview-button"
+                                                title="Preview image"
+                                            >
+                                                <img src={url} alt={`State preview ${index + 1}`} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveImage(index)}
+                                                className="node-image-remove"
+                                                title="Remove image"
+                                                aria-label={`Remove image ${index + 1}`}
+                                            >
+                                                X
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="node-image-empty">No images attached.</div>
+                            )}
+
+                            <label className="node-upload-button">
+                                <span>Add Images</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(event) => {
+                                        void handleImageUpload(event.target.files);
+                                        event.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </div>
+                    </section>
+
+                    <footer className="node-modal-actions">
+                        <div className="node-modal-danger-actions">
+                            {isEditing && onDuplicate && (
+                                <button type="button" onClick={onDuplicate} className="node-button subtle">
+                                    Duplicate State
+                                </button>
+                            )}
+                            {isEditing && onDelete && (
+                                <button type="button" onClick={onDelete} className="node-button danger">
+                                    Delete State
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="node-modal-primary-actions">
+                            <button type="button" onClick={handleRequestClose} className="node-button secondary">
+                                Cancel
                             </button>
-                        )}
-                        {isEditing && onDelete && (
-                            <button type="button" onClick={onDelete} style={deleteButtonStyle}>
-                                Delete State
+                            <button type="submit" className="node-button primary" disabled={boundsInvalid}>
+                                {isEditing ? 'Update Node' : 'Create Node'}
                             </button>
-                        )}
-                        <button type="button" onClick={onClose} style={secondaryButtonStyle}>
-                            Cancel
-                        </button>
-                        <button type="submit" style={primaryButtonStyle} disabled={boundsInvalid}>
-                            {isEditing ? 'Update' : 'Add'}
-                        </button>
-                    </div>
+                        </div>
+                    </footer>
                 </form>
 
                 {previewImage && (
-                    <div style={previewOverlayStyle} onClick={() => setPreviewImage(null)}>
-                        <div style={previewBoxStyle} onClick={(e) => e.stopPropagation()}>
-                            <button type="button" style={previewCloseStyle} onClick={() => setPreviewImage(null)}>x</button>
-                            <img src={previewImage} alt="State image preview" style={previewImageStyle} />
+                    <div className="node-preview-overlay" onClick={() => setPreviewImage(null)}>
+                        <div className="node-preview-box" onClick={(event) => event.stopPropagation()}>
+                            <button type="button" className="node-preview-close" onClick={() => setPreviewImage(null)}>X</button>
+                            <img src={previewImage} alt="State image preview" />
                         </div>
                     </div>
                 )}
@@ -480,153 +542,3 @@ export function NodeModal({
         </div>
     );
 }
-
-const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-};
-
-const modalStyle: React.CSSProperties = {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 20,
-    width: 430,
-    maxWidth: '90%',
-    maxHeight: '80vh',
-    overflowY: 'auto',
-};
-
-const sectionStyle: React.CSSProperties = {
-    marginBottom: 15,
-    padding: 10,
-    borderRadius: 6,
-    border: '1px solid #e5e7eb',
-    backgroundColor: '#f9fafb',
-};
-
-const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 5 };
-const labelTextStyle: React.CSSProperties = { display: 'block', marginBottom: 4, fontSize: 13 };
-const fieldStyle: React.CSSProperties = { marginBottom: 15 };
-const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: 8,
-    borderRadius: 4,
-    border: '1px solid #ccc',
-};
-const selectStyle: React.CSSProperties = { ...inputStyle, backgroundColor: 'white' };
-
-const galleryStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
-    gap: 8,
-    marginBottom: 10,
-};
-
-const thumbWrapStyle: React.CSSProperties = { position: 'relative' };
-const thumbButtonStyle: React.CSSProperties = {
-    width: '100%',
-    aspectRatio: '1 / 1',
-    padding: 0,
-    border: '1px solid #ddd',
-    borderRadius: 4,
-    overflow: 'hidden',
-    background: '#f9fafb',
-    cursor: 'pointer',
-};
-const thumbImageStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
-const removeImageButtonStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    border: 'none',
-    borderRadius: 999,
-    background: 'rgba(17, 24, 39, 0.78)',
-    color: 'white',
-    cursor: 'pointer',
-    lineHeight: '22px',
-    padding: 0,
-};
-
-const buttonRowStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
-    flexWrap: 'wrap',
-};
-const secondaryButtonStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: 4,
-    border: '1px solid #ccc',
-    backgroundColor: '#f5f5f5',
-    cursor: 'pointer',
-};
-const primaryButtonStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: 4,
-    border: 'none',
-    backgroundColor: '#007bff',
-    color: 'white',
-    cursor: 'pointer',
-};
-const deleteButtonStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: 4,
-    border: '1px solid #cc0000',
-    backgroundColor: '#ffeeee',
-    color: '#8b0000',
-    cursor: 'pointer',
-};
-const duplicateButtonStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: 4,
-    border: '1px solid #1d4ed8',
-    backgroundColor: '#eff6ff',
-    color: '#1d4ed8',
-    cursor: 'pointer',
-};
-
-const previewOverlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0, 0, 0, 0.72)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1300,
-};
-const previewBoxStyle: React.CSSProperties = {
-    position: 'relative',
-    maxWidth: '82vw',
-    maxHeight: '82vh',
-    background: '#111827',
-    borderRadius: 8,
-    padding: 10,
-};
-const previewCloseStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: -12,
-    right: -12,
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    border: 'none',
-    background: '#fff',
-    cursor: 'pointer',
-};
-const previewImageStyle: React.CSSProperties = {
-    maxWidth: '78vw',
-    maxHeight: '78vh',
-    objectFit: 'contain',
-    display: 'block',
-};

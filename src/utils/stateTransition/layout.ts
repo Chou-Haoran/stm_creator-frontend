@@ -14,14 +14,58 @@ function getVastClassNumber(vastClass: string): number {
     return CLASS_ORDER[vastClass] ?? 99;
 }
 
+function getVastClass(state: StateData): string {
+    const candidate =
+        state.vast_state?.vast_class ??
+        (state as any).vast_class ??
+        (state as any).vastClass ??
+        (state as any).condition_class ??
+        (state as any).conditionClass ??
+        state.attributes?.vastClass ??
+        state.attributes?.vast_class ??
+        state.attributes?.conditionClass ??
+        state.attributes?.condition_class;
+
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return `Class ${['I', 'II', 'III', 'IV', 'V', 'VI'][candidate - 1] ?? candidate}`;
+    }
+    if (typeof candidate !== 'string') {
+        return 'Unknown';
+    }
+    const trimmed = candidate.trim();
+    const numberMatch = /(?:class\s*)?([1-6])$/i.exec(trimmed);
+    if (numberMatch) {
+        return `Class ${['I', 'II', 'III', 'IV', 'V', 'VI'][Number(numberMatch[1]) - 1]}`;
+    }
+    return trimmed || 'Unknown';
+}
+
 function getConditionMidpoint(state: StateData): number {
-    if (!Number.isFinite(state.condition_lower) || !Number.isFinite(state.condition_upper)) {
+    const lower = getNumericField(state, ['condition_lower', 'conditionLower', 'condition_min', 'conditionMin', 'lower']);
+    const upper = getNumericField(state, ['condition_upper', 'conditionUpper', 'condition_max', 'conditionMax', 'upper']);
+    if (!Number.isFinite(lower) || !Number.isFinite(upper)) {
         return -1;
     }
-    if (state.condition_lower === -9999 || state.condition_upper === -9999) {
+    if (lower === -9999 || upper === -9999) {
         return -1;
     }
-    return (state.condition_lower + state.condition_upper) / 2;
+    return (lower + upper) / 2;
+}
+
+function getNumericField(state: StateData, keys: string[]): number {
+    for (const key of keys) {
+        const value = (state as any)[key] ?? state.attributes?.[key];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+        if (typeof value === 'string' && value.trim() !== '') {
+            const parsed = Number(value);
+            if (Number.isFinite(parsed)) {
+                return parsed;
+            }
+        }
+    }
+    return Number.NaN;
 }
 
 function getStatePriority(state: StateData): number {
@@ -49,7 +93,7 @@ export function optimizeNodeLayout(
     states.forEach((state) => {
         const id = getGraphStateId(state);
         connectionWeights.set(id, { inbound: 0, outbound: 0, total: 0 });
-        const vastClass = state.vast_state?.vast_class || 'Unknown';
+        const vastClass = getVastClass(state);
         statesByClass.set(vastClass, [...(statesByClass.get(vastClass) ?? []), state]);
     });
 
