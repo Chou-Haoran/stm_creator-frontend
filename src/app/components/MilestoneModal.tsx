@@ -1,5 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GraphModelVersion } from '../types';
+import type { GlobalRole, ModelRole } from '../../constants/roles';
+import { canEditModel, isAdmin } from '../../utils/permissions';
+import {
+    createMilestone,
+    deleteMilestone,
+    getMilestones,
+    restoreMilestone,
+} from '../api/models';
 
 interface MilestoneModalProps {
     isOpen: boolean;
@@ -10,6 +18,9 @@ interface MilestoneModalProps {
     onRestore: (id: string) => void;
     onDelete: (id: string) => void;
     canEdit: boolean;
+    modelName?: string | null;
+    currentModelRole?: ModelRole | null;
+    userRole?: GlobalRole | null;
 }
 
 /**
@@ -26,17 +37,65 @@ export function MilestoneModal({
     onRestore,
     onDelete,
     canEdit,
+    modelName,
+    currentModelRole,
+    userRole,
 }: MilestoneModalProps) {
     // User-entered name for the milestone (optional)
     const [milestoneName, setMilestoneName] = useState('');
+    const [backendVersions, setBackendVersions] = useState<GraphModelVersion[] | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
     // ID of the milestone pending delete confirmation; null when no confirm dialog is shown
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const canCreateOrRestore = Boolean(canEdit && canEditModel(currentModelRole ?? undefined));
+    const canDeleteMilestones = isAdmin(userRole ?? undefined);
+    const displayedVersions = backendVersions ?? versions;
+
+    useEffect(() => {
+        if (!isOpen || !modelName) return;
+        let cancelled = false;
+        const run = async () => {
+            setActionError(null);
+            try {
+                const data = await getMilestones(modelName);
+                const milestones = Array.isArray(data?.milestones) ? data.milestones : Array.isArray(data) ? data : [];
+                const mapped = milestones.map((milestone: any): GraphModelVersion => ({
+                    id: String(milestone.id ?? milestone.milestone_id),
+                    name: String(milestone.label ?? milestone.name ?? 'Milestone'),
+                    savedAt: String(milestone.created_at ?? milestone.savedAt ?? new Date().toISOString()),
+                    data: milestone.data ?? versions[0]?.data,
+                })).filter((milestone: GraphModelVersion) => Boolean(milestone.id && milestone.data));
+                if (!cancelled) setBackendVersions(mapped);
+            } catch {
+                if (!cancelled) setBackendVersions(null);
+            }
+        };
+        void run();
+        return () => { cancelled = true; };
+    }, [isOpen, modelName, versions]);
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
-        onSave(milestoneName);
-        setMilestoneName('');
+    const handleSave = async () => {
+        if (!canCreateOrRestore) return;
+        const label = milestoneName.trim() || `Milestone ${new Date().toLocaleString()}`;
+        try {
+            if (!modelName) throw new Error('No model selected');
+            await createMilestone(modelName, { label });
+            const data = await getMilestones(modelName);
+            const milestones = Array.isArray(data?.milestones) ? data.milestones : Array.isArray(data) ? data : [];
+            setBackendVersions(milestones.map((milestone: any): GraphModelVersion => ({
+                id: String(milestone.id ?? milestone.milestone_id),
+                name: String(milestone.label ?? milestone.name ?? 'Milestone'),
+                savedAt: String(milestone.created_at ?? milestone.savedAt ?? new Date().toISOString()),
+                data: milestone.data ?? versions[0]?.data,
+            })).filter((milestone: GraphModelVersion) => Boolean(milestone.id && milestone.data)));
+        } catch (error) {
+            setActionError((error as Error).message || 'Backend milestone save failed. Saved locally instead.');
+            onSave(label);
+        } finally {
+            setMilestoneName('');
+        }
     };
 
     const handleDeleteClick = (event: React.MouseEvent<HTMLButtonElement>, id: string) => {
@@ -46,8 +105,26 @@ export function MilestoneModal({
 
     const confirmDelete = () => {
         if (pendingDeleteId) {
-            onDelete(pendingDeleteId);
+            if (canDeleteMilestones && modelName) {
+                void deleteMilestone(modelName, Number(pendingDeleteId))
+                    .then(() => setBackendVersions((items) => items?.filter((item) => item.id !== pendingDeleteId) ?? null))
+                    .catch(() => onDelete(pendingDeleteId));
+            } else {
+                onDelete(pendingDeleteId);
+            }
             setPendingDeleteId(null);
+        }
+    };
+
+    const handleRestore = async (id: string) => {
+        if (!canCreateOrRestore) return;
+        try {
+            if (!modelName) throw new Error('No model selected');
+            await restoreMilestone(modelName, Number(id));
+            globalThis.location.reload();
+        } catch (error) {
+            setActionError((error as Error).message || 'Backend restore failed. Restoring local milestone instead.');
+            onRestore(id);
         }
     };
 
@@ -70,17 +147,17 @@ export function MilestoneModal({
                         type="text"
                         value={milestoneName}
                         onChange={(e) => setMilestoneName(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && canEdit) handleSave(); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && canCreateOrRestore) void handleSave(); }}
                         placeholder="Milestone name (optional)…"
                         style={nameInput}
                     />
                     <button
-                        onClick={handleSave}
-                        disabled={!canEdit}
+                        onClick={() => void handleSave()}
+                        disabled={!canCreateOrRestore}
                         style={{
                             ...saveBtnStyle,
-                            opacity: canEdit ? 1 : 0.5,
-                            cursor: canEdit ? 'pointer' : 'not-allowed',
+                            opacity: canCreateOrRestore ? 1 : 0.5,
+                            cursor: canCreateOrRestore ? 'pointer' : 'not-allowed',
                         }}
                     >
                         <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 14, height: 14 }}>
@@ -95,11 +172,12 @@ export function MilestoneModal({
                 {/* Milestone history list */}
                 <div style={listSection}>
                     <h3 style={sectionTitle}>History</h3>
-                    {versions.length === 0 ? (
+                    {actionError && <p style={errorText}>{actionError}</p>}
+                    {displayedVersions.length === 0 ? (
                         <p style={emptyText}>No milestones saved yet.</p>
                     ) : (
                         <ul style={listContainer}>
-                            {versions.map((version) => {
+                            {displayedVersions.map((version) => {
                                 const savedAt = new Date(version.savedAt);
                                 return (
                                     <li key={version.id} style={listItem}>
@@ -111,17 +189,20 @@ export function MilestoneModal({
                                         </div>
                                         <div style={actionRow}>
                                             <button
-                                                onClick={() => onRestore(version.id)}
+                                                onClick={() => void handleRestore(version.id)}
+                                                disabled={!canCreateOrRestore}
                                                 style={restoreBtn}
                                             >
                                                 Restore
                                             </button>
-                                            <button
-                                                onClick={(e) => handleDeleteClick(e, version.id)}
-                                                style={deleteBtn}
-                                            >
-                                                Delete
-                                            </button>
+                                            {canDeleteMilestones && (
+                                                <button
+                                                    onClick={(e) => handleDeleteClick(e, version.id)}
+                                                    style={deleteBtn}
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
                                         </div>
                                     </li>
                                 );
@@ -252,6 +333,12 @@ const emptyText: React.CSSProperties = {
     color: '#6b7280',
     fontSize: 14,
     margin: '8px 0',
+};
+
+const errorText: React.CSSProperties = {
+    color: '#dc2626',
+    fontSize: 12,
+    margin: '0 0 8px',
 };
 
 const listContainer: React.CSSProperties = {

@@ -1,4 +1,4 @@
-import { API_BASE, getAuthHeader } from '../auth/api';
+import { API_BASE, apiFetch } from '../auth/api';
 
 export interface BackendComment {
     id: number;
@@ -18,6 +18,9 @@ export interface BackendComment {
 
 interface CommentsResponse {
     comments: BackendComment[];
+    total: number;
+    limit: number;
+    offset: number;
 }
 
 interface CommentResponse {
@@ -34,29 +37,43 @@ async function readError(response: Response): Promise<string> {
     }
 }
 
-export async function fetchComments(modelName: string): Promise<BackendComment[]> {
-    const response = await fetch(`${API_BASE}/collab/${encodeURIComponent(modelName)}/comments`, {
+export const getComments = async (
+    modelName: string,
+    limit = 50,
+    offset = 0,
+): Promise<{ comments: BackendComment[]; total: number; limit: number; offset: number }> => {
+    const response = await apiFetch(
+        `${API_BASE}/collab/${encodeURIComponent(modelName)}/comments?limit=${limit}&offset=${offset}`,
+        {
         headers: {
             Accept: 'application/json',
-            ...getAuthHeader(),
         },
-    });
+        },
+    );
 
     if (!response.ok) {
         throw new Error(await readError(response));
     }
 
     const data = await response.json() as CommentsResponse;
-    return Array.isArray(data.comments) ? data.comments : [];
+    return {
+        comments: Array.isArray(data.comments) ? data.comments : [],
+        total: typeof data.total === 'number' ? data.total : data.comments.length,
+        limit: typeof data.limit === 'number' ? data.limit : limit,
+        offset: typeof data.offset === 'number' ? data.offset : offset,
+    };
+};
+
+export async function fetchComments(modelName: string): Promise<BackendComment[]> {
+    const data = await getComments(modelName);
+    return data.comments;
 }
 
 export async function createComment(modelName: string, body: string): Promise<BackendComment> {
-    const response = await fetch(`${API_BASE}/collab/${encodeURIComponent(modelName)}/comments`, {
+    const response = await apiFetch(`${API_BASE}/collab/${encodeURIComponent(modelName)}/comments`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             Accept: 'application/json',
-            ...getAuthHeader(),
         },
         body: JSON.stringify({ body }),
     });
@@ -70,13 +87,12 @@ export async function createComment(modelName: string, body: string): Promise<Ba
 }
 
 export async function resolveComment(modelName: string, commentId: number): Promise<void> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE}/collab/${encodeURIComponent(modelName)}/comments/${commentId}/resolve`,
         {
             method: 'PATCH',
             headers: {
                 Accept: 'application/json',
-                ...getAuthHeader(),
             },
         },
     );
@@ -87,13 +103,12 @@ export async function resolveComment(modelName: string, commentId: number): Prom
 }
 
 export async function deleteComment(modelName: string, commentId: number): Promise<void> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE}/collab/${encodeURIComponent(modelName)}/comments/${commentId}`,
         {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
-                ...getAuthHeader(),
             },
         },
     );

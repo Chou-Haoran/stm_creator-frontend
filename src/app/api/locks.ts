@@ -1,23 +1,33 @@
-import { API_BASE, getAuthHeader } from '../auth/api';
+import { API_BASE, apiFetch } from '../auth/api';
 
 export interface ModelLockInfo {
   locked: boolean;
+  lockType?: 'edit' | 'review';
   lockId?: string;
   lockedBy?: string;
   expiresAt?: string;
   owner?: boolean;
 }
 
-interface LockResponse {
+export interface LockResponse {
+  locked: boolean;
+  lock_type: 'edit' | 'review';
+  locked_by?: string;
+  expires_at?: string;
   success?: boolean;
   lock?: {
+    lock_type?: 'edit' | 'review';
     lockId?: string;
+    lock_id?: string;
     lockedBy?: string;
+    locked_by?: string;
     expiresAt?: string;
+    expires_at?: string;
     owner?: boolean;
   };
-  locked?: boolean;
   lockId?: string;
+  lock_id?: string;
+  lockType?: 'edit' | 'review';
   lockedBy?: string;
   expiresAt?: string;
   owner?: boolean;
@@ -43,17 +53,18 @@ function normalize(payload: LockResponse): ModelLockInfo {
   const lock = payload.lock;
   return {
     locked: typeof payload.locked === 'boolean' ? payload.locked : true,
-    lockId: lock?.lockId ?? payload.lockId,
-    lockedBy: lock?.lockedBy ?? payload.lockedBy,
-    expiresAt: lock?.expiresAt ?? payload.expiresAt,
+    lockType: lock?.lock_type ?? payload.lock_type ?? payload.lockType,
+    lockId: lock?.lockId ?? lock?.lock_id ?? payload.lockId ?? payload.lock_id,
+    lockedBy: lock?.lockedBy ?? lock?.locked_by ?? payload.lockedBy ?? payload.locked_by,
+    expiresAt: lock?.expiresAt ?? lock?.expires_at ?? payload.expiresAt ?? payload.expires_at,
     owner: lock?.owner ?? payload.owner,
   };
 }
 
 export async function acquireModelLock(modelName: string): Promise<ModelLockInfo> {
-  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/acquire`, {
+  const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/acquire`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader(), Accept: 'application/json' },
+    headers: { Accept: 'application/json' },
   });
   if (!res.ok) throw new Error(await readError(res));
   const payload = (await res.json()) as LockResponse;
@@ -61,9 +72,9 @@ export async function acquireModelLock(modelName: string): Promise<ModelLockInfo
 }
 
 export async function renewModelLock(modelName: string, lockId: string): Promise<ModelLockInfo> {
-  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/renew`, {
+  const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/renew`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader(), Accept: 'application/json' },
+    headers: { Accept: 'application/json' },
     body: JSON.stringify({ lockId }),
   });
   if (!res.ok) throw new Error(await readError(res));
@@ -72,9 +83,9 @@ export async function renewModelLock(modelName: string, lockId: string): Promise
 }
 
 export async function releaseModelLock(modelName: string, lockId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/release`, {
+  const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock/release`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader(), Accept: 'application/json' },
+    headers: { Accept: 'application/json' },
     body: JSON.stringify({ lockId }),
     keepalive: true,
   });
@@ -82,8 +93,8 @@ export async function releaseModelLock(modelName: string, lockId: string): Promi
 }
 
 export async function getModelLock(modelName: string): Promise<ModelLockInfo> {
-  const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock`, {
-    headers: { ...getAuthHeader(), Accept: 'application/json' },
+  const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}/lock`, {
+    headers: { Accept: 'application/json' },
   });
   if (!res.ok) throw new Error(await readError(res));
   const payload = (await res.json()) as LockResponse;

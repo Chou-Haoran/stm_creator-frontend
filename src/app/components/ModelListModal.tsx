@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { API_BASE, getAuthHeader } from '../../app/auth/api';
+import { API_BASE, apiFetch } from '../../app/auth/api';
+import type { ModelSummary } from '../api/models';
 
 interface Props {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface Props {
 export function ModelListModal({ isOpen, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<ModelSummary[]>([]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -18,11 +19,11 @@ export function ModelListModal({ isOpen, onClose }: Props) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/models/all`, {
-          headers: { 'Accept': 'application/json', ...getAuthHeader() },
+        const res = await apiFetch(`${API_BASE}/models/all`, {
+          headers: { 'Accept': 'application/json' },
         });
         if (res.status === 401 || res.status === 403) {
-          setError('Requires Admin privileges. Please sign in as an Admin.');
+          setError('You do not have permission to list models.');
           setModels([]);
           return;
         }
@@ -31,7 +32,14 @@ export function ModelListModal({ isOpen, onClose }: Props) {
           throw new Error(txt || `Failed to fetch models (${res.status})`);
         }
         const data = (await res.json()) as unknown;
-        const arr = Array.isArray(data) ? data.filter((x) => typeof x === 'string') as string[] : [];
+        const arr = Array.isArray(data)
+          ? data.filter((x): x is ModelSummary =>
+              typeof x === 'object' &&
+              x !== null &&
+              typeof (x as ModelSummary).id === 'number' &&
+              typeof (x as ModelSummary).stm_name === 'string',
+            )
+          : [];
         if (!cancelled) setModels(arr);
       } catch (e) {
         if (!cancelled) setError((e as Error).message || 'Failed to fetch models');
@@ -82,16 +90,16 @@ export function ModelListModal({ isOpen, onClose }: Props) {
           <p style={{ marginTop: 16 }}>No models found.</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, marginTop: 16, display: 'grid', gap: 8 }}>
-            {models.map((name) => (
-              <li key={name}>
+            {models.map((model) => (
+              <li key={model.id}>
                 <button
-                  onClick={() => goToModel(name)}
+                  onClick={() => goToModel(model.stm_name)}
                   style={{
                     width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 6,
                     border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer'
                   }}
                 >
-                  {name}
+                  {model.stm_name}
                 </button>
               </li>
             ))}
@@ -101,4 +109,3 @@ export function ModelListModal({ isOpen, onClose }: Props) {
     </div>
   );
 }
-
