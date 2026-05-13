@@ -66,7 +66,7 @@ import { coachSteps } from './extensions/onboarding/coachmarks';
 import { useOnboarding } from './extensions/onboarding/useOnboarding';
 import { CONDITION_CLASS_ORDER, CONDITION_CLASS_COLOURS } from './utils/conditionColours';
 import { MODEL_ROLES, isModelRole, type ModelRole } from './constants/roles';
-import { canAcquireLock, canEditModel } from './utils/permissions';
+import { canAcquireLock, canEditModel, isAdmin } from './utils/permissions';
 
 type NodeLockState = Record<
   string,
@@ -174,9 +174,21 @@ function GraphEditor() {
 
   const modelNameFromLocks = useRef<string | null>(null);
   const baseCanEdit = Boolean(auth || isGuest);
+  const hasGlobalAdminAccess = isAdmin(auth?.user.role ?? undefined);
+  const canAcquireModelEditLock = Boolean(
+    auth?.token &&
+    (
+      canAcquireLock(currentModelRole ?? undefined) ||
+      hasGlobalAdminAccess
+    ),
+  );
+  const canMutateModelWithLock = Boolean(
+    canEditModel(currentModelRole ?? undefined) ||
+    hasGlobalAdminAccess
+  );
   const canEditCurrentModel = isGuest || (
     Boolean(auth?.token) &&
-    canEditModel(currentModelRole ?? undefined) &&
+    canMutateModelWithLock &&
     modelLockOwnedByMe &&
     lockType === 'edit'
   );
@@ -411,11 +423,15 @@ function GraphEditor() {
   }, [auth?.token, modelName]);
 
   const handleAcquireModelLock = async () => {
-    if (!modelName || !canAcquireLock(currentModelRole ?? undefined)) {
+    if (!modelName || !canAcquireModelEditLock) {
       return;
     }
-    const lock = await acquireModelLock(modelName);
-    applyModelLock(lock);
+    try {
+      const lock = await acquireModelLock(modelName);
+      applyModelLock(lock);
+    } catch (error) {
+      window.alert((error as Error).message || 'Unable to acquire edit lock.');
+    }
   };
 
   const handleRefreshModelLock = async () => {
@@ -1081,7 +1097,7 @@ function GraphEditor() {
           lockHolder={lockHolder}
           lockExpiresAt={lockExpiresAt}
           hasActiveLock={modelLockOwnedByMe}
-          onAcquireLock={auth?.token && canAcquireLock(currentModelRole ?? undefined) && !modelLockOwnedByMe ? () => { void handleAcquireModelLock(); } : undefined}
+          onAcquireLock={canAcquireModelEditLock && !modelLockOwnedByMe ? () => { void handleAcquireModelLock(); } : undefined}
           onRefreshLock={modelLockOwnedByMe ? () => { void handleRefreshModelLock(); } : undefined}
           onReleaseLock={modelLockOwnedByMe && modelLockId ? () => { void handleReleaseModelLock(); } : undefined}
           onLogout={() => {
