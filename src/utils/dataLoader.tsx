@@ -5,7 +5,7 @@ import {
   hasFrontendStateId,
   hasPersistedStateId,
 } from './stateTransition';
-import { API_BASE, getAuthHeader } from '../app/auth/api';
+import { API_BASE, apiFetch, authStorage } from '../app/auth/api';
 
 function getModelName(): string | undefined {
   try {
@@ -13,12 +13,15 @@ function getModelName(): string | undefined {
     const q = qs.get('model')?.trim();
     if (q) return q;
   } catch {}
-  const envName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
-  if (envName?.trim()) return envName.trim();
   try {
     const last = localStorage.getItem('stmCreator.lastModelName');
     if (last?.trim()) return last.trim();
   } catch {}
+  if (authStorage.getToken()) {
+    return undefined;
+  }
+  const envName = (import.meta as any).env?.VITE_MODEL_NAME as string | undefined;
+  if (envName?.trim()) return envName.trim();
   return undefined;
 }
 
@@ -57,8 +60,8 @@ export async function loadBMRGData(): Promise<BMRGData> {
   }
   
   try {
-    const res = await fetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
-      headers: { Accept: 'application/json', ...getAuthHeader() },
+    const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
+      headers: { Accept: 'application/json' },
     });
     
     if (res.status === 401 || res.status === 403) {
@@ -91,16 +94,17 @@ export async function loadBMRGData(): Promise<BMRGData> {
 // Save the updated BMRG data back to the server
 export async function saveBMRGData(data: BMRGData): Promise<boolean> {
   const payload = prepareSavePayload(data);
-  const res = await fetch(`${API_BASE}/models/save`, {
+  const res = await apiFetch(`${API_BASE}/models/save`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeader(),
+      Accept: 'application/json',
     },
     body: JSON.stringify(payload),
   });
-  if (res.status === 401 || res.status === 403) {
-    alert('需要 Editor/Admin 权限并登录后才能保存到服务器。');
+  if (res.status === 401) {
+    return false;
+  }
+  if (res.status === 403) {
     return false;
   }
   if (!res.ok) {

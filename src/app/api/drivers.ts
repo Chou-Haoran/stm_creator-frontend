@@ -1,4 +1,4 @@
-import { API_BASE, getAuthHeader } from '../auth/api';
+import { API_BASE, apiFetch } from '../auth/api';
 
 export interface DriverSearchResult {
     id: number;
@@ -26,10 +26,9 @@ export async function searchDrivers(
         limit: String(options.limit ?? 12),
     });
 
-    const response = await fetch(`${API_BASE}/drivers/search?${params.toString()}`, {
+    const response = await apiFetch(`${API_BASE}/drivers/search?${params.toString()}`, {
         headers: {
             Accept: 'application/json',
-            ...getAuthHeader(),
         },
         signal: options.signal,
     });

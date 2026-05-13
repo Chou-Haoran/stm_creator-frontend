@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
+import { GLOBAL_ROLES, type GlobalRole } from '../../constants/roles';
 
 export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'Viewer' | 'Editor' | 'Admin';
+  role: GlobalRole;
   is_verified: boolean;
   created_at: string;
 }
@@ -21,9 +22,9 @@ interface UsersTableProps {
 const PAGE_SIZE = 10;
 
 const ROLE_BADGE: Record<User['role'], React.CSSProperties> = {
-  Admin:  { background: '#ecfdf3', color: '#027a48', borderColor: '#abefc6' },
-  Editor: { background: '#eff8ff', color: '#175cd3', borderColor: '#b2ddff' },
-  Viewer: { background: '#f4f3ff', color: '#5925dc', borderColor: '#d9d6fe' },
+  [GLOBAL_ROLES.ADMIN]:  { background: '#ecfdf3', color: '#027a48', borderColor: '#abefc6' },
+  [GLOBAL_ROLES.EDITOR]: { background: '#eff8ff', color: '#175cd3', borderColor: '#b2ddff' },
+  [GLOBAL_ROLES.VIEWER]: { background: '#f4f3ff', color: '#5925dc', borderColor: '#d9d6fe' },
 };
 
 export function UsersTable({ users, loading, onRoleChange, onRevokeSession, onDeleteUser }: UsersTableProps) {
@@ -57,6 +58,7 @@ export function UsersTable({ users, loading, onRoleChange, onRevokeSession, onDe
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
   const pageUsers = filtered.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
+  const adminCount = users.filter(user => user.role === GLOBAL_ROLES.ADMIN).length;
 
   const execRoleChange = async (userId: number, role: string) => {
     setOp(userId, 'role', true);
@@ -156,9 +158,9 @@ export function UsersTable({ users, loading, onRoleChange, onRevokeSession, onDe
           style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 136 }}
         >
           <option value="All">All roles</option>
-          <option value="Viewer">Viewer</option>
-          <option value="Editor">Editor</option>
-          <option value="Admin">Admin</option>
+          <option value={GLOBAL_ROLES.VIEWER}>{GLOBAL_ROLES.VIEWER}</option>
+          <option value={GLOBAL_ROLES.EDITOR}>{GLOBAL_ROLES.EDITOR}</option>
+          <option value={GLOBAL_ROLES.ADMIN}>{GLOBAL_ROLES.ADMIN}</option>
         </select>
       </div>
 
@@ -206,10 +208,14 @@ export function UsersTable({ users, loading, onRoleChange, onRevokeSession, onDe
                       <span style={{ ...roleBadgeBase, ...ROLE_BADGE[user.role] }}>
                         {user.role}
                       </span>
+                      {(() => {
+                        const isLastAdmin = user.role === GLOBAL_ROLES.ADMIN && adminCount === 1;
+                        return (
                       <select
                         value={user.role}
                         onChange={e => handleRoleChange(user, e.target.value)}
-                        disabled={isOp(user.id, 'role')}
+                        disabled={isOp(user.id, 'role') || isLastAdmin}
+                        title={isLastAdmin ? 'Cannot change — this is the last Admin' : undefined}
                         aria-label={`Change role for ${user.name}`}
                         style={{
                           padding: '3px 6px',
@@ -218,15 +224,17 @@ export function UsersTable({ users, loading, onRoleChange, onRevokeSession, onDe
                           background: '#ffffff',
                           color: '#475467',
                           fontSize: 12,
-                          cursor: isOp(user.id, 'role') ? 'not-allowed' : 'pointer',
-                          opacity: isOp(user.id, 'role') ? 0.5 : 1,
+                          cursor: isOp(user.id, 'role') || isLastAdmin ? 'not-allowed' : 'pointer',
+                          opacity: isOp(user.id, 'role') || isLastAdmin ? 0.5 : 1,
                           fontFamily: 'inherit',
                         }}
                       >
-                        <option value="Viewer">Viewer</option>
-                        <option value="Editor">Editor</option>
-                        <option value="Admin">Admin</option>
+                        <option value={GLOBAL_ROLES.VIEWER}>{GLOBAL_ROLES.VIEWER}</option>
+                        <option value={GLOBAL_ROLES.EDITOR}>{GLOBAL_ROLES.EDITOR}</option>
+                        <option value={GLOBAL_ROLES.ADMIN}>{GLOBAL_ROLES.ADMIN}</option>
                       </select>
+                        );
+                      })()}
                       {isOp(user.id, 'role') && <Spinner color="#475467" />}
                     </div>
                   </td>
