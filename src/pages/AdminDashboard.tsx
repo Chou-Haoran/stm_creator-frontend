@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { API_BASE, authStorage } from '../app/auth/api';
+import { API_BASE, apiFetch } from '../app/auth/api';
 import { StatsCard } from '../components/admin/StatsCard';
 import { UsersTable, type User } from '../components/admin/UsersTable';
 import styles from './AdminDashboard.module.css';
@@ -40,13 +40,6 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState<'dashboard' | 'users' | 'sessions'>('dashboard');
 
-  const token = authStorage.getToken() ?? '';
-
-  const authHeaders = (): HeadersInit => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  });
-
   const addToast = (type: Toast['type'], message: string) => {
     const id = ++_toastSeq;
     setToasts(prev => [...prev, { id, type, message }]);
@@ -69,7 +62,7 @@ export default function AdminDashboard() {
   async function fetchStats() {
     setStatsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/stats`, { headers: authHeaders() });
+      const res = await apiFetch(`${API_BASE}/api/admin/stats`);
       if (!res.ok) throw new Error(`Failed to load stats (${res.status})`);
       setStats(await res.json());
     } catch (err) {
@@ -82,7 +75,7 @@ export default function AdminDashboard() {
   async function fetchUsers() {
     setUsersLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
+      const res = await apiFetch(`${API_BASE}/api/admin/users`);
       if (!res.ok) throw new Error(`Failed to load users (${res.status})`);
       const data = await res.json();
       setUsers(data?.users ?? []);
@@ -96,7 +89,7 @@ export default function AdminDashboard() {
   async function fetchAuditLog() {
     setAuditLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/audit-log`, { headers: authHeaders() });
+      const res = await apiFetch(`${API_BASE}/api/admin/audit-log`);
       if (!res.ok) throw new Error(`Audit log: ${res.status}`);
       const data = await res.json();
       setAuditLogs(data?.logs ?? []);
@@ -110,9 +103,8 @@ export default function AdminDashboard() {
   const handleRoleChange = async (userId: number, role: string) => {
     setUsersError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/role`, {
+      const res = await apiFetch(`${API_BASE}/api/admin/users/${userId}/role`, {
         method: 'PATCH',
-        headers: authHeaders(),
         body: JSON.stringify({ role }),
       });
       if (!res.ok) throw new Error(`Failed to update role (${res.status})`);
@@ -127,9 +119,8 @@ export default function AdminDashboard() {
   const handleRevokeSession = async (userId: number) => {
     setUsersError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/sessions`, {
+      const res = await apiFetch(`${API_BASE}/api/admin/users/${userId}/sessions`, {
         method: 'DELETE',
-        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`Failed to revoke session (${res.status})`);
       addToast('success', 'Session revoked successfully');
@@ -142,9 +133,8 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (userId: number) => {
     setUsersError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+      const res = await apiFetch(`${API_BASE}/api/admin/users/${userId}`, {
         method: 'DELETE',
-        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`Failed to delete user (${res.status})`);
       setUsers(prev => prev.filter(u => u.id !== userId));

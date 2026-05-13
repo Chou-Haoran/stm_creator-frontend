@@ -5,6 +5,8 @@ import {
     resolveComment as resolveBackendComment,
     type BackendComment,
 } from '../api/comments';
+import type { GlobalRole, ModelRole } from '../../constants/roles';
+import { canPostComments, canReviewModel, isAdmin } from '../../utils/permissions';
 
 export type CommentEntry = BackendComment;
 
@@ -20,9 +22,14 @@ interface CommentPanelProps {
     comments: CommentEntry[];
     onCommentsChange: (comments: CommentEntry[]) => void;
     onReload?: () => Promise<void> | void;
+    onLoadMore?: () => Promise<void> | void;
+    hasMore?: boolean;
     isLoading?: boolean;
     error?: string | null;
     canComment?: boolean;
+    currentModelRole?: ModelRole | null;
+    userEmail?: string | null;
+    userRole?: GlobalRole | null;
     /** Available nodes: { id, label } */
     nodes: { id: string; label: string }[];
     /** Available edges: { id, sourceLabel, targetLabel } */
@@ -35,9 +42,14 @@ export function CommentPanel({
     comments,
     onCommentsChange,
     onReload,
+    onLoadMore,
+    hasMore = false,
     isLoading = false,
     error = null,
     canComment = true,
+    currentModelRole,
+    userEmail,
+    userRole,
     nodes,
     edges,
     modelName,
@@ -50,6 +62,9 @@ export function CommentPanel({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const canSubmitComments = Boolean(canComment && canPostComments(currentModelRole ?? undefined));
+    const canResolveComments = canReviewModel(currentModelRole ?? undefined);
+    const canDeleteAnyComment = isAdmin(userRole ?? undefined);
 
     // Build the mention list from nodes and edges
     const mentionItems = useMemo<MentionItem[]>(() => [
@@ -97,7 +112,7 @@ export function CommentPanel({
     };
 
     const handleSubmit = async () => {
-        if (!text.trim()) return;
+        if (!text.trim() || !canSubmitComments) return;
         setIsSubmitting(true);
         setActionError(null);
         try {
@@ -113,6 +128,7 @@ export function CommentPanel({
     };
 
     const resolveComment = async (commentId: number) => {
+        if (!canResolveComments) return;
         setActionError(null);
         try {
             await resolveBackendComment(modelName, commentId);
@@ -130,6 +146,9 @@ export function CommentPanel({
 
     const confirmDelete = async () => {
         if (!pendingDeleteId) return;
+        const comment = comments.find((candidate) => candidate.id === pendingDeleteId);
+        const canDeleteOwnComment = Boolean(canSubmitComments && comment?.author.email === userEmail);
+        if (!canDeleteOwnComment && !canDeleteAnyComment) return;
         setActionError(null);
         try {
             await deleteBackendComment(modelName, pendingDeleteId);
@@ -167,53 +186,58 @@ export function CommentPanel({
             </div>
 
             {/* New comment input */}
-            <div style={inputSection}>
-                <div style={{ position: 'relative' }}>
-                    <textarea
-                        ref={textareaRef}
-                        value={text}
-                        onChange={(e) => handleTextChange(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !showMentions) {
-                                e.preventDefault();
-                                void handleSubmit();
-                            }
-                        }}
-                        placeholder="Write a comment. Use @ to mention nodes/edges"
-                        style={textareaStyle}
-                        rows={3}
-                        disabled={!canComment || isSubmitting}
-                    />
-                    {/* @mention dropdown — positioned below textarea using its bounding rect */}
-                    {showMentions && filteredMentions.length > 0 && textareaRef.current && (() => {
-                        const rect = textareaRef.current!.getBoundingClientRect();
-                        return (
-                            <div style={{ ...mentionDropdown, top: rect.bottom + 4, left: rect.left }}>
-                                {filteredMentions.slice(0, 8).map(item => (
-                                    <button
-                                        key={`${item.type}-${item.id}`}
-                                        onClick={() => insertMention(item)}
-                                        style={mentionItem}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface2, #f0fdf4)'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
-                                    >
-                                        <span style={mentionBadge(item.type)}>
-                                            {item.type === 'node' ? 'N' : 'E'}
-                                        </span>
-                                        <span style={{ fontSize: 12 }}>{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        );
-                    })()}
+            {canSubmitComments && (
+                <div style={inputSection}>
+                    <div style={{ position: 'relative' }}>
+                        <textarea
+                            ref={textareaRef}
+                            value={text}
+                            onChange={(e) => handleTextChange(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey && !showMentions) {
+                                    e.preventDefault();
+                                    void handleSubmit();
+                                }
+                            }}
+                            placeholder="Write a comment. Use @ to mention nodes/edges"
+                            style={textareaStyle}
+                            rows={3}
+                            disabled={isSubmitting}
+                        />
+                        {/* @mention dropdown — positioned below textarea using its bounding rect */}
+                        {showMentions && filteredMentions.length > 0 && textareaRef.current && (() => {
+                            const rect = textareaRef.current!.getBoundingClientRect();
+                            return (
+                                <div style={{ ...mentionDropdown, top: rect.bottom + 4, left: rect.left }}>
+                                    {filteredMentions.slice(0, 8).map(item => (
+                                        <button
+                                            key={`${item.type}-${item.id}`}
+                                            onClick={() => insertMention(item)}
+                                            style={mentionItem}
+                                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface2, #f0fdf4)'; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+                                        >
+                                            <span style={mentionBadge(item.type)}>
+                                                {item.type === 'node' ? 'N' : 'E'}
+                                            </span>
+                                            <span style={{ fontSize: 12 }}>{item.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                    <button onClick={() => void handleSubmit()} style={submitBtn} disabled={!text.trim() || isSubmitting}>
+                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                    </button>
+                    {(error || actionError) && (
+                        <div style={errorText}>{actionError ?? error}</div>
+                    )}
                 </div>
-                <button onClick={() => void handleSubmit()} style={submitBtn} disabled={!text.trim() || !canComment || isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : 'Submit'}
-                </button>
-                {(error || actionError) && (
-                    <div style={errorText}>{actionError ?? error}</div>
-                )}
-            </div>
+            )}
+            {!canSubmitComments && (error || actionError) && (
+                <div style={errorText}>{actionError ?? error}</div>
+            )}
 
             <div style={dividerStyle} />
 
@@ -236,18 +260,22 @@ export function CommentPanel({
                                     </div>
                                     <div style={commentText}>{renderText(c.body)}</div>
                                     <div style={commentActions}>
-                                        <button
-                                            onClick={() => void resolveComment(c.id)}
-                                            style={resolveBtnStyle}
-                                        >
-                                            Resolve
-                                        </button>
-                                        <button
-                                            onClick={() => setPendingDeleteId(c.id)}
-                                            style={deleteBtnStyle}
-                                        >
-                                            Delete
-                                        </button>
+                                        {canResolveComments && (
+                                            <button
+                                                onClick={() => void resolveComment(c.id)}
+                                                style={resolveBtnStyle}
+                                            >
+                                                Resolve
+                                            </button>
+                                        )}
+                                        {(canDeleteAnyComment || (canSubmitComments && c.author.email === userEmail)) && (
+                                            <button
+                                                onClick={() => setPendingDeleteId(c.id)}
+                                                style={deleteBtnStyle}
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))
@@ -273,16 +301,28 @@ export function CommentPanel({
                                         </div>
                                         <div style={commentText}>{renderText(c.body)}</div>
                                         <div style={commentActions}>
-                                            <button
-                                                onClick={() => setPendingDeleteId(c.id)}
-                                                style={deleteBtnStyle}
-                                            >
-                                                Delete
-                                            </button>
+                                            {(canDeleteAnyComment || (canSubmitComments && c.author.email === userEmail)) && (
+                                                <button
+                                                    onClick={() => setPendingDeleteId(c.id)}
+                                                    style={deleteBtnStyle}
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
+                        )}
+                        {hasMore && (
+                            <button
+                                type="button"
+                                onClick={() => { void onLoadMore?.(); }}
+                                disabled={isLoading}
+                                style={loadMoreBtn}
+                            >
+                                {isLoading ? 'Loading...' : 'Load more'}
+                            </button>
                         )}
                     </>
                 )}
@@ -381,6 +421,18 @@ const errorText: React.CSSProperties = {
     color: '#dc2626',
     fontSize: 11,
     lineHeight: 1.4,
+};
+
+const loadMoreBtn: React.CSSProperties = {
+    width: '100%',
+    padding: '8px 12px',
+    borderRadius: 6,
+    border: '1px solid var(--border, #e5e7eb)',
+    background: '#fff',
+    color: 'var(--text, #064e3b)',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 600,
 };
 
 const dividerStyle: React.CSSProperties = {

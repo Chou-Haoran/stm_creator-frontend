@@ -19,6 +19,7 @@ import { createLayoutActions } from './graphLayout';
 
 interface UseGraphEditorOptions {
     canEdit?: boolean;
+    initialise?: boolean;
     onReadOnlyAction?: () => void;
     requestNodeEdit?: (nodeId: string) => Promise<boolean>;
     nodeLocks?: Record<
@@ -33,6 +34,7 @@ interface UseGraphEditorOptions {
 
 export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEditorResult {
     const canEdit = options.canEdit ?? true;
+    const shouldInitialise = options.initialise ?? true;
     const onReadOnlyAction = options.onReadOnlyAction;
     const nodeLocks = options.nodeLocks ?? {};
     const state = useGraphBaseState();
@@ -154,9 +156,12 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     useEffect(() => {
+        if (!shouldInitialise) {
+            return;
+        }
         modelActions.initialise();
         versionActions.initialise();
-    }, []);
+    }, [shouldInitialise]);
 
     const nodesWithCallbacks = state.nodes.map((node) => ({
         ...node,

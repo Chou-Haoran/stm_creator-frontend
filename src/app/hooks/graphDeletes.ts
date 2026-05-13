@@ -90,10 +90,9 @@ export function createDeleteActions({ getData, setData, setNodes, rebuildEdges, 
       // Reload to reset app state cleanly
       window.location.href = '/editor';
     } catch (e) {
-      alert((e as Error).message || 'Failed to delete model');
+      console.error((e as Error).message || 'Failed to delete model');
     }
   };
 
   return { handleDeleteTransition, handleDeleteState, handleDeleteModel };
 }
-

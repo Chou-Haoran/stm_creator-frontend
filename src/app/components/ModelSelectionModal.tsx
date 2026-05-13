@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { API_BASE, getAuthHeader } from '../auth/api';
+import { getAssignedModels, type ModelSummary } from '../api/models';
+import { CreateModelModal } from '../../components/CreateModelModal';
 
 /**
  * Props for ModelSelectionModal.
@@ -19,28 +20,25 @@ interface Props {
  * ModelSelectionModal — displayed after login to let the user pick a model.
  *
  * Two sections:
- *   1. Existing Models List — fetched from GET /models/all (same API as
- *      the toolbar's "Open Model" button in ModelListModal). Clicking a
+ *   1. Accessible Models List — fetched from GET /models/assigned. Clicking a
  *      model triggers onLoadExisting, which navigates to /editor?model={name}.
  *   2. Create New Model — text input + "Create" button. Submitting triggers
  *      onCreateNew, which navigates to /editor?model={name} (the backend
  *      auto-creates an empty model when the name doesn't exist yet).
  */
 export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisting }: Props) {
-  // Input value for the "create new model" text field
-  const [modelName, setModelName] = useState('');
   // Validation error for the create-new input
   const [error, setError] = useState<string | null>(null);
-  // List of existing model names returned by the API
-  const [models, setModels] = useState<string[]>([]);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  // List of existing models returned by the API
+  const [models, setModels] = useState<ModelSummary[]>([]);
   // Loading state while fetching the model list
   const [listLoading, setListLoading] = useState(false);
   // Error message if the model list fetch fails
   const [listError, setListError] = useState<string | null>(null);
 
   /**
-   * Fetch all existing models from the API whenever the modal opens.
-   * Uses the same endpoint (GET /models/all) as ModelListModal in the toolbar.
+   * Fetch models the signed-in user can access whenever the modal opens.
    * A cleanup flag (`cancelled`) prevents state updates if the modal closes
    * before the request completes.
    */
@@ -51,23 +49,8 @@ export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisti
       setListLoading(true);
       setListError(null);
       try {
-        const res = await fetch(`${API_BASE}/models/all`, {
-          headers: { 'Accept': 'application/json', ...getAuthHeader() },
-        });
-        // 401/403 means the user lacks Admin privileges to list models
-        if (res.status === 401 || res.status === 403) {
-          setListError('Requires Admin privileges to list models.');
-          setModels([]);
-          return;
-        }
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(txt || `Failed to fetch models (${res.status})`);
-        }
-        // API returns string[] — filter to be safe
-        const data = (await res.json()) as unknown;
-        const arr = Array.isArray(data) ? data.filter((x) => typeof x === 'string') as string[] : [];
-        if (!cancelled) setModels(arr);
+        const data = await getAssignedModels();
+        if (!cancelled) setModels(data);
       } catch (e) {
         if (!cancelled) setListError((e as Error).message || 'Failed to fetch models');
       } finally {
@@ -93,20 +76,8 @@ export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisti
     };
   }, [isOpen]);
 
-  /** Validate the input and trigger model creation */
-  const handleCreateNew = () => {
-    if (!modelName.trim()) {
-      setError('Please enter a model name');
-      return;
-    }
-    onCreateNew(modelName.trim());
-    setModelName('');
-    setError(null);
-  };
-
   /** Reset local state and notify parent to close the modal */
   const handleClose = () => {
-    setModelName('');
     setError(null);
     onClose();
   };
@@ -121,30 +92,29 @@ export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisti
 
         {/* ── Section 1: Header ── */}
         <div style={header}>
-          <h2 id="model-selection-title" style={titleStyle}>Select Model</h2>
+          <h2 id="model-selection-title" style={titleStyle}>Select a model you can access</h2>
           <button onClick={handleClose} style={closeBtn} aria-label="Close">✖</button>
         </div>
 
-        {/* ── Section 2: Existing Models List ──
-            Fetched from GET /models/all on mount.
+        {/* ── Section 2: Accessible Models List ──
+            Fetched from GET /models/assigned on mount.
             Clicking a model item calls onLoadExisting(name), which navigates
             to /editor?model={name} — same behaviour as the toolbar "Open Model". */}
         <div style={sectionBox}>
-          <h3 style={sectionTitle}>Existing Models</h3>
+          <h3 style={sectionTitle}>Models you have access to</h3>
           {listLoading ? (
             <p style={infoText}>Loading models…</p>
           ) : listError ? (
             <div style={errorBoxStyle}>{listError}</div>
           ) : models.length === 0 ? (
-            <p style={infoText}>No models found.</p>
+            <p style={infoText}>No accessible models found.</p>
           ) : (
             <ul style={listContainer}>
-              {models.map((name) => (
-                <li key={name}>
+              {models.map((model) => (
+                <li key={model.id}>
                   <button
                     onClick={() => {
-                      onLoadExisting(name);
-                      setModelName('');
+                      onLoadExisting(model.stm_name);
                       setError(null);
                     }}
                     style={modelItemBtn}
@@ -158,7 +128,7 @@ export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisti
                     }}
                   >
                     <span style={modelIcon}>📄</span>
-                    <span>{name}</span>
+                    <span>{model.stm_name}</span>
                   </button>
                 </li>
               ))}
@@ -174,26 +144,22 @@ export function ModelSelectionModal({ isOpen, onClose, onCreateNew, onLoadExisti
         </div>
 
         {/* ── Section 3: Create New Model ──
-            User types a model name and clicks "Create" (or presses Enter).
-            Calls onCreateNew(name), which navigates to /editor?model={name}.
-            The backend auto-creates an empty model when the name doesn't exist. */}
+            Opens the dedicated creation flow for scratch models or templates. */}
         <div style={createSection}>
-          <div style={createRow}>
-            <input
-              type="text"
-              value={modelName}
-              onChange={(e) => { setModelName(e.target.value); setError(null); }}
-              placeholder="Enter new model name…"
-              style={inputStyle}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateNew(); }}
-            />
-            <button onClick={handleCreateNew} style={createBtn}>
-              Create
-            </button>
-          </div>
+          <button onClick={() => setCreateModalOpen(true)} style={createBtn}>
+            Create new model
+          </button>
           {error && <div style={inputError}>{error}</div>}
         </div>
       </div>
+      <CreateModelModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={(createdModelName) => {
+          setCreateModalOpen(false);
+          onCreateNew(createdModelName);
+        }}
+      />
     </div>
   );
 }
@@ -336,22 +302,6 @@ const dividerText: React.CSSProperties = {
 
 /** Wrapper for the create-new-model input row */
 const createSection: React.CSSProperties = {};
-
-const createRow: React.CSSProperties = {
-  display: 'flex',
-  gap: 10,
-};
-
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: '1px solid #F0D9A6',
-  background: '#fff',
-  color: '#065f46',
-  outline: 'none',
-  fontSize: 14,
-};
 
 const createBtn: React.CSSProperties = {
   padding: '10px 20px',

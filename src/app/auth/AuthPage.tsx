@@ -82,10 +82,9 @@ export default function AuthPage({ onAuthenticated, onContinueGuest, onModelSele
 
   const handleCloseModelSelection = () => {
     setShowModelSelection(false);
-    if (pendingAuth) { 
-        onAuthenticated(pendingAuth); 
-        setPendingAuth(null); 
-    }
+    setPendingAuth(null);
+    authStorage.clear();
+    setTab('login');
   };
 
   return (
@@ -255,7 +254,7 @@ function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Editor');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
@@ -272,9 +271,13 @@ function SignupForm() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setLoading(true);
     try {
-      await signup(name, email, password, role);
+      await signup(name, email, password);
       setSentTo(email);
     } catch (err) {
       setError((err as Error).message || 'Signup failed');
@@ -312,12 +315,11 @@ function SignupForm() {
           onFocus={() => setFocused('s-p')} onBlur={() => setFocused(null)}
           onChange={e => setPassword(e.target.value)} />
       </AField>
-      <AField label="Role">
-        <select style={{ ...inputStyle('s-r'), cursor: 'pointer' }} value={role} onChange={e => setRole(e.target.value)}>
-          <option>Viewer</option>
-          <option>Editor</option>
-          <option>Admin</option>
-        </select>
+      <AField label="Confirm Password">
+        <input className="auth-input" type="password" required minLength={8} style={inputStyle('s-cp')} value={confirmPassword}
+          placeholder="••••••••"
+          onFocus={() => setFocused('s-cp')} onBlur={() => setFocused(null)}
+          onChange={e => setConfirmPassword(e.target.value)} />
       </AField>
       {error && <p style={{ color: '#ef4444', fontSize: 12.5, margin: 0 }}>{error}</p>}
       <APrimaryBtn loading={loading}>Create Account</APrimaryBtn>

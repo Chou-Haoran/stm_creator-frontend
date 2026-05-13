@@ -7,7 +7,7 @@ import {
 } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 import '@xyflow/react/dist/style.css';
 import './EdgeStyles.css';
@@ -20,7 +20,9 @@ import { ErrorState } from './app/components/ErrorState';
 import { LoadingState } from './app/components/LoadingState';
 import { TipsPanel } from './app/components/TipsPanel';
 import { CommentPanel, type CommentEntry } from './app/components/CommentPanel';
-import { fetchComments } from './app/api/comments';
+import { getComments } from './app/api/comments';
+import { getAssignedModels } from './app/api/models';
+import { acquireModelLock, getModelLock, releaseModelLock, renewModelLock, type ModelLockInfo } from './app/api/locks';
 import {
     CanvasContextMenu,
     type CanvasContextMenuState,
@@ -29,8 +31,9 @@ import { MilestoneModal } from './app/components/MilestoneModal';
 import { ModelListModal } from './app/components/ModelListModal';
 import { HelpModal } from './app/components/HelpModal';
 import { VersionComparisonModal } from './app/components/VersionComparisonModal';
+import { ModelPermissionsModal } from './components/ModelPermissionsModal';
 import { useGraphEditor } from './app/hooks/useGraphEditor';
-import { NodeModal } from './nodes/nodeModal';
+import { NodeModal, type NodeAttributes } from './nodes/nodeModal';
 import { TransitionModal, type Driver } from './transitions/transitionModal';
 
 import { TransitionFilterPanel } from './extensions/TransitionFilterPanel';
@@ -55,12 +58,15 @@ import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/AdminDashboard';
 import VerifyEmail from './pages/VerifyEmail';
+import Forbidden from './pages/Forbidden';
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 
 import { Tour } from './extensions/onboarding/Tour';
 import { coachSteps } from './extensions/onboarding/coachmarks';
 import { useOnboarding } from './extensions/onboarding/useOnboarding';
 import { CONDITION_CLASS_ORDER, CONDITION_CLASS_COLOURS } from './utils/conditionColours';
+import { MODEL_ROLES, isModelRole, type ModelRole } from './constants/roles';
+import { canAcquireLock, canEditModel } from './utils/permissions';
 
 type NodeLockState = Record<
   string,
@@ -83,12 +89,16 @@ type RemoteCursorState = Record<
 >;
 
 function GraphEditor() {
+  const navigate = useNavigate();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isModelListOpen, setIsModelListOpen] = useState(false);
+  const [isModelPermissionsOpen, setIsModelPermissionsOpen] = useState(false);
   const [isVersionComparisonOpen, setIsVersionComparisonOpen] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<CommentEntry[]>([]);
+  const [commentsTotal, setCommentsTotal] = useState(0);
+  const [commentsLimit, setCommentsLimit] = useState(50);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   // Sidebar legend collapse/expand state. Persisted in localStorage so the
@@ -115,6 +125,27 @@ function GraphEditor() {
     const user = authStorage.getUser();
     return token && user ? { token, user } : null;
   });
+  const [currentModelRole, setCurrentModelRole] = useState<ModelRole | null>(null);
+  const [modelLockId, setModelLockId] = useState<string | null>(null);
+  const [lockType, setLockType] = useState<'edit' | 'review' | null>(null);
+  const [lockHolder, setLockHolder] = useState<string | null>(null);
+  const [lockExpiresAt, setLockExpiresAt] = useState<string | null>(null);
+  const [modelLockOwnedByMe, setModelLockOwnedByMe] = useState(false);
+  useEffect(() => {
+    const handler = () => {
+      setAuth(null);
+      navigate('/login');
+    };
+    window.addEventListener('auth:expired', handler);
+    return () => window.removeEventListener('auth:expired', handler);
+  }, [navigate]);
+  useEffect(() => {
+    const handler = () => {
+      navigate('/forbidden');
+    };
+    window.addEventListener('auth:forbidden', handler);
+    return () => window.removeEventListener('auth:forbidden', handler);
+  }, [navigate]);
   const [isGuest, setIsGuest] = useState(false);
   const [nodeLocks, setNodeLocks] = useState<NodeLockState>({});
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -143,6 +174,12 @@ function GraphEditor() {
 
   const modelNameFromLocks = useRef<string | null>(null);
   const baseCanEdit = Boolean(auth || isGuest);
+  const canEditCurrentModel = isGuest || (
+    Boolean(auth?.token) &&
+    canEditModel(currentModelRole ?? undefined) &&
+    modelLockOwnedByMe &&
+    lockType === 'edit'
+  );
 
   const releaseActiveNodeLock = (reasonModelName?: string | null) => {
     const activeNodeId = activeNodeLockRef.current.nodeId;
@@ -291,15 +328,109 @@ function GraphEditor() {
     exportToEKS,
     importFromEKS,
   } = useGraphEditor({
-    canEdit: baseCanEdit,
+    initialise: Boolean(auth || isGuest),
+    canEdit: canEditCurrentModel,
     onReadOnlyAction: () => {
-      window.alert('You do not currently have permission to edit this view.');
+      window.alert('Acquire an edit lock before changing this model.');
     },
     requestNodeEdit,
     nodeLocks,
   });
 
   const modelName = bmrgData?.stm_name?.trim() || null;
+
+  const applyModelLock = (lock: ModelLockInfo) => {
+    const ownedByCurrentUser = Boolean(
+      lock.locked &&
+      (
+        lock.owner ||
+        (
+          lock.lockId &&
+          (!lock.lockedBy || lock.lockedBy === auth?.user.email)
+        )
+      ),
+    );
+    setModelLockId(lock.lockId ?? null);
+    setLockType(lock.locked ? lock.lockType ?? null : null);
+    setLockHolder(lock.locked ? lock.lockedBy ?? null : null);
+    setLockExpiresAt(lock.locked ? lock.expiresAt ?? null : null);
+    setModelLockOwnedByMe(ownedByCurrentUser);
+  };
+
+  const clearModelLock = () => {
+    setModelLockId(null);
+    setLockType(null);
+    setLockHolder(null);
+    setLockExpiresAt(null);
+    setModelLockOwnedByMe(false);
+  };
+
+  useEffect(() => {
+    if (!auth?.token || !modelName) {
+      setCurrentModelRole(null);
+      return;
+    }
+
+    if (isModelRole(bmrgData?.model_role)) {
+      setCurrentModelRole(bmrgData.model_role);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const assignedModels = await getAssignedModels();
+        if (cancelled) return;
+        const assignedModel = assignedModels.find((model) => model.stm_name === modelName);
+        setCurrentModelRole(isModelRole(assignedModel?.model_role) ? assignedModel.model_role : null);
+      } catch {
+        if (!cancelled) setCurrentModelRole(null);
+      }
+    };
+    void run();
+    return () => { cancelled = true; };
+  }, [auth?.token, bmrgData?.model_role, modelName]);
+
+  useEffect(() => {
+    if (!auth?.token || !modelName) {
+      clearModelLock();
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const lock = await getModelLock(modelName);
+        if (!cancelled) applyModelLock(lock);
+      } catch {
+        if (!cancelled) clearModelLock();
+      }
+    };
+    void run();
+    return () => { cancelled = true; };
+  }, [auth?.token, modelName]);
+
+  const handleAcquireModelLock = async () => {
+    if (!modelName || !canAcquireLock(currentModelRole ?? undefined)) {
+      return;
+    }
+    const lock = await acquireModelLock(modelName);
+    applyModelLock(lock);
+  };
+
+  const handleRefreshModelLock = async () => {
+    if (!modelName) return;
+    const lock = modelLockId
+      ? await renewModelLock(modelName, modelLockId)
+      : await getModelLock(modelName);
+    applyModelLock(lock);
+  };
+
+  const handleReleaseModelLock = async () => {
+    if (!modelName || !modelLockId) return;
+    await releaseModelLock(modelName, modelLockId);
+    clearModelLock();
+  };
 
   // Right-click context menu state for canvas (state nodes & transition edges).
   const [contextMenu, setContextMenu] =
@@ -315,7 +446,7 @@ function GraphEditor() {
     event: React.MouseEvent,
     node: { id: string },
   ) => {
-    if (!baseCanEdit) return;
+    if (!canEditCurrentModel) return;
     event.preventDefault();
     const graphStateId = parseStateId(node.id);
     if (graphStateId === null) return;
@@ -332,7 +463,7 @@ function GraphEditor() {
     event: React.MouseEvent,
     edge: { id: string },
   ) => {
-    if (!baseCanEdit) return;
+    if (!canEditCurrentModel) return;
     event.preventDefault();
     const match = /^transition-(\d+)$/.exec(edge.id);
     if (!match) return;
@@ -384,6 +515,7 @@ function GraphEditor() {
   const refreshComments = useCallback(async () => {
     if (!auth?.token || !modelName) {
       setComments([]);
+      setCommentsTotal(0);
       setCommentsError(null);
       setCommentsLoading(false);
       return;
@@ -392,14 +524,44 @@ function GraphEditor() {
     setCommentsLoading(true);
     setCommentsError(null);
     try {
-      const nextComments = await fetchComments(modelName);
-      setComments(nextComments);
+      const response = await getComments(modelName, commentsLimit, 0);
+      setCommentsTotal(response.total);
+      setCommentsLimit(response.limit);
+      setComments((existing) => {
+        const incomingIds = new Set(response.comments.map((comment) => comment.id));
+        return [
+          ...response.comments,
+          ...existing.filter((comment) => !incomingIds.has(comment.id)),
+        ];
+      });
     } catch (error_) {
       setCommentsError(error_ instanceof Error ? error_.message : 'Failed to load comments.');
     } finally {
       setCommentsLoading(false);
     }
-  }, [auth?.token, modelName]);
+  }, [auth?.token, commentsLimit, modelName]);
+
+  const loadMoreComments = useCallback(async () => {
+    if (!auth?.token || !modelName || comments.length >= commentsTotal) return;
+    setCommentsLoading(true);
+    setCommentsError(null);
+    try {
+      const response = await getComments(modelName, commentsLimit, comments.length);
+      setCommentsTotal(response.total);
+      setCommentsLimit(response.limit);
+      setComments((existing) => {
+        const existingIds = new Set(existing.map((comment) => comment.id));
+        return [
+          ...existing,
+          ...response.comments.filter((comment) => !existingIds.has(comment.id)),
+        ];
+      });
+    } catch (error_) {
+      setCommentsError(error_ instanceof Error ? error_.message : 'Failed to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [auth?.token, comments.length, commentsLimit, commentsTotal, modelName]);
 
   useEffect(() => {
     void refreshComments();
@@ -531,15 +693,31 @@ function GraphEditor() {
     return await handleSaveModel();
   };
 
-  const handleNodePatch = (field: string, value: unknown) => {
+  const emitConfirmedNodeUpdate = (attributes: NodeAttributes) => {
     const nodeId = initialNodeValues?.id;
     const graphStateId = nodeId ? parseStateId(nodeId) : null;
-    if (!auth?.token || !modelName || !nodeId || graphStateId === null) {
+    if (!isEditing || !auth?.token || !modelName || !nodeId || graphStateId === null) {
       return;
     }
 
-    emitEntityPatch(modelName, graphStateId, field, value);
-    applyRemoteNodePatch(nodeId, graphStateId, field, value);
+    const bounds = /Condition\s*range:\s*([\d.+-]+)\s*-\s*([\d.+-]+)/i.exec(attributes.condition ?? '');
+    const patches: Array<[string, unknown]> = [
+      ['stateName', attributes.stateName],
+      ['stateNumber', attributes.stateNumber],
+      ['vastClass', attributes.vastClass],
+      ['note', attributes.note ?? ''],
+      ['imageUrls', attributes.imageUrls ?? (attributes.imageUrl ? [attributes.imageUrl] : [])],
+      ['imageUrl', attributes.imageUrl ?? ''],
+      ['template', attributes.template],
+    ];
+
+    if (bounds) {
+      patches.push(['conditionLower', bounds[1]], ['conditionUpper', bounds[2]]);
+    }
+
+    patches.forEach(([field, value]) => {
+      emitEntityPatch(modelName, graphStateId, field, value);
+    });
   };
 
   const emitNodePositionPatch = (graphStateId: number, position: { x: number; y: number }) => {
@@ -736,6 +914,7 @@ function GraphEditor() {
   }, []);
 
   const handleCreateNewModel = (nextModelName: string) => {
+    setCurrentModelRole(MODEL_ROLES.OWNER);
     globalThis.location.href = `/editor?model=${encodeURIComponent(nextModelName)}`;
   };
 
@@ -893,10 +1072,18 @@ function GraphEditor() {
           bmrgData={bmrgData}
           onOpenHelp={() => setIsHelpOpen(true)}
           onToggleComments={() => setCommentsOpen(prev => !prev)}
+          onOpenModelPermissions={() => setIsModelPermissionsOpen(true)}
           userEmail={auth?.user.email ?? null}
           userRole={auth?.user.role ?? null}
+          currentModelRole={currentModelRole}
           isGuest={isGuest}
-          canEdit={baseCanEdit}
+          canEdit={canEditCurrentModel}
+          lockHolder={lockHolder}
+          lockExpiresAt={lockExpiresAt}
+          hasActiveLock={modelLockOwnedByMe}
+          onAcquireLock={auth?.token && canAcquireLock(currentModelRole ?? undefined) && !modelLockOwnedByMe ? () => { void handleAcquireModelLock(); } : undefined}
+          onRefreshLock={modelLockOwnedByMe ? () => { void handleRefreshModelLock(); } : undefined}
+          onReleaseLock={modelLockOwnedByMe && modelLockId ? () => { void handleReleaseModelLock(); } : undefined}
           onLogout={() => {
             releaseActiveNodeLock(modelName);
             disconnectCollabSocket();
@@ -930,11 +1117,26 @@ function GraphEditor() {
           <span
             className="dot"
             style={{
-              background: baseCanEdit ? 'var(--accent)' : 'var(--amber)',
+              background: canEditCurrentModel ? 'var(--accent)' : 'var(--amber)',
             }}
           />
-          {baseCanEdit ? 'Node-level editing' : 'Read-only'}
+          {canEditCurrentModel ? 'Edit lock active' : 'Read-only'}
         </div>
+
+        {lockType && (
+          <div
+            className="meta-pill"
+            style={{
+              borderColor: lockType === 'review' ? '#f59e0b' : '#f97316',
+              color: lockType === 'review' ? '#92400e' : '#9a3412',
+              background: lockType === 'review' ? '#fffbeb' : '#fff7ed',
+            }}
+          >
+            {lockType === 'review'
+              ? '🔒 Locked for review — editing is paused while a reviewer is active'
+              : `🔒 Being edited by ${lockHolder ?? 'another user'}`}
+          </div>
+        )}
 
         {auth?.user.email && (
           <div className="meta-pill">
@@ -1061,15 +1263,15 @@ function GraphEditor() {
             onNodeDragStop={handleNodeDragStop}
             edgesFocusable
             elementsSelectable
-            edgesReconnectable={baseCanEdit}
+            edgesReconnectable={canEditCurrentModel}
             reconnectRadius={10}
             fitView
             fitViewOptions={{ padding: 0.2, includeHiddenNodes: false }}
             proOptions={{ hideAttribution: true }}
             minZoom={0.2}
             maxZoom={2}
-            nodesDraggable={baseCanEdit}
-            connectOnClick={baseCanEdit}
+            nodesDraggable={canEditCurrentModel}
+            connectOnClick={canEditCurrentModel}
             zoomOnDoubleClick={false}
             panOnDrag
             panOnScroll
@@ -1121,9 +1323,14 @@ function GraphEditor() {
                 comments={comments}
                 onCommentsChange={setComments}
                 onReload={refreshComments}
+                onLoadMore={loadMoreComments}
+                hasMore={comments.length < commentsTotal}
                 isLoading={commentsLoading}
                 error={commentsError}
                 canComment={Boolean(auth?.token && modelName)}
+                currentModelRole={currentModelRole}
+                userEmail={auth?.user.email ?? null}
+                userRole={auth?.user.role ?? null}
                 nodes={nodesForRender.map((n) => ({ id: n.id, label: n.data.label || n.id }))}
                 edges={edges.map((e) => {
                   const srcNode = nodesForRender.find((n) => n.id === e.source);
@@ -1153,8 +1360,8 @@ function GraphEditor() {
           releaseActiveNodeLock(modelName);
           closeNodeModal();
         }}
-        onPatch={handleNodePatch}
         onSave={(attributes) => {
+          emitConfirmedNodeUpdate(attributes);
           handleSaveNode(attributes);
           releaseActiveNodeLock(modelName);
         }}
@@ -1194,7 +1401,10 @@ function GraphEditor() {
         onSave={saveCurrentVersion}
         onRestore={restoreVersion}
         onDelete={deleteVersion}
-        canEdit={baseCanEdit}
+        canEdit={canEditCurrentModel}
+        modelName={modelName}
+        currentModelRole={currentModelRole}
+        userRole={auth?.user.role ?? null}
       />
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -1204,7 +1414,17 @@ function GraphEditor() {
         currentData={bmrgData}
         onClose={() => setIsVersionComparisonOpen(false)}
       />
-      <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} />
+      <ModelListModal
+        isOpen={isModelListOpen}
+        onClose={() => setIsModelListOpen(false)}
+        userRole={auth?.user.role ?? null}
+      />
+      <ModelPermissionsModal
+        isOpen={isModelPermissionsOpen}
+        modelName={modelName}
+        currentModelRole={currentModelRole}
+        onClose={() => setIsModelPermissionsOpen(false)}
+      />
 
       <CanvasContextMenu
         menu={contextMenu}
@@ -1225,6 +1445,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Navigate to="/editor" replace />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forbidden" element={<Forbidden />} />
         <Route path="/notfound" element={<NotFound />} />
         <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
         <Route path="*" element={<Navigate to="/notfound" replace />} />

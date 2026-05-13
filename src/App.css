@@ -9,16 +9,16 @@
 
 /* ─── TOOLBAR ─── */
 .toolbar {
-  height: var(--toolbar-h);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 12px;
   position: relative;
-  z-index: 100;
   flex-shrink: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .toolbar-logo {
@@ -111,6 +111,98 @@
 
 .tb-spacer {
   flex: 1;
+}
+
+.tb-icon-only {
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.tb-global-action {
+  padding: 0 8px;
+  gap: 5px;
+}
+
+.tb-global-action span {
+  display: inline-block;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-dropdown-wrapper {
+  position: relative;
+}
+
+.tb-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tb-dropdown-trigger .tb-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 120ms ease;
+  flex-shrink: 0;
+}
+
+.tb-dropdown-trigger.open .tb-chevron {
+  transform: rotate(180deg);
+}
+
+.tb-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 8px;
+  min-width: 180px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: tb-panel-in 120ms ease forwards;
+}
+
+@keyframes tb-panel-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tb-dropdown-panel .tb-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 6px 10px;
+}
+
+.tb-dropdown-panel .tb-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tb-dropdown-select {
+  appearance: auto;
+}
+
+.tb-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.tb-dropdown-panel .tb-btn.danger {
+  color: var(--red-text, #991b1b);
+}
+
+.tb-dropdown-panel .tb-btn.danger:hover {
+  background: var(--red-subtle, #fee2e2);
 }
 
 /* ─── HEADER ─── */

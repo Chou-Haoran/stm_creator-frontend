@@ -1,3 +1,5 @@
+import type { ModelRole } from '../../constants/roles';
+
 export interface StateData {
     state_id?: number;
     frontend_state_id?: number;
@@ -54,4 +56,5 @@ export interface BMRGData {
     states: StateData[];
     transitions: TransitionData[];
     method_alignment: string;
+    model_role?: ModelRole;
 }

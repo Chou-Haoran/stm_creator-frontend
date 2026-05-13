@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction } from 'react';
 
 import { loadBMRGData, prepareSavePayload } from '../../utils/dataLoader';
 import { BMRGData, statesToNodes } from '../../utils/stateTransition';
-import { API_BASE, authStorage } from '../auth/api';
+import { API_BASE, apiFetch, authStorage } from '../auth/api';
 import { AppNode } from '../../nodes/types';
 
 interface ModelDeps {
@@ -73,31 +73,34 @@ export function createModelActions({
 
         try {
             const payload = prepareSavePayload(data);
-            const response = await fetch(`${API_BASE}/models/save`, {
+            const response = await apiFetch(`${API_BASE}/models/save`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     Accept: 'application/json',
-                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
 
-            if (response.status === 401 || response.status === 403) {
+            if (response.status === 403) {
+                const message = await extractErrorMessage(response) || 'You do not have permission to save this model.';
+                throw new Error(message);
+            }
+
+            if (response.status === 401) {
                 const message = await extractErrorMessage(response) || 'Your session has expired or you do not have permission to save.';
-                alert(message);
+                setError(message);
                 throw new Error(message);
             }
 
             if (response.status >= 500) {
                 const message = await extractErrorMessage(response) || 'The server encountered an unexpected error while saving.';
-                alert(message);
+                setError(message);
                 throw new Error(message);
             }
 
             if (!response.ok) {
                 const message = await extractErrorMessage(response) || `Failed to save model (${response.status}).`;
-                alert(message);
+                setError(message);
                 throw new Error(message);
             }
 
