@@ -43,7 +43,6 @@ interface GraphToolbarProps {
   readonly canEdit: boolean;
   readonly lockHolder?: string | null;
   readonly lockExpiresAt?: string | null;
-  readonly hasActiveLock?: boolean;
   readonly onAcquireLock?: () => void;
   readonly onReleaseLock?: () => void;
   readonly onRefreshLock?: () => void;
@@ -79,7 +78,6 @@ export function GraphToolbar({
   canEdit,
   lockHolder,
   lockExpiresAt,
-  hasActiveLock = false,
   onAcquireLock,
   onReleaseLock,
   onRefreshLock,
@@ -322,21 +320,21 @@ export function GraphToolbar({
       <div className="tb-spacer" />
 
       {/* Lock controls */}
-      {!hasActiveLock && onAcquireLock && (
+      {!canEdit && onAcquireLock && (
         <button type="button" onClick={onAcquireLock} className="tb-btn primary tb-global-action" title={lockTitle} aria-label="Request lock">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
           <span>Lock</span>
         </button>
       )}
 
-      {hasActiveLock && onRefreshLock && (
+      {canEdit && onRefreshLock && (
         <button type="button" onClick={onRefreshLock} className="tb-btn tb-global-action" title="Refresh lock" aria-label="Refresh lock">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M13 8a5 5 0 1 1-1.5-3.55"/><path d="M13 3.5v4h-4"/></svg>
           <span>Refresh</span>
         </button>
       )}
 
-      {hasActiveLock && onReleaseLock && (
+      {canEdit && onReleaseLock && (
         <button type="button" onClick={onReleaseLock} className="tb-btn tb-global-action" title="Release lock" aria-label="Release lock">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.4-1.65"/></svg>
           <span>Unlock</span>

@@ -66,7 +66,7 @@ import { coachSteps } from './extensions/onboarding/coachmarks';
 import { useOnboarding } from './extensions/onboarding/useOnboarding';
 import { CONDITION_CLASS_ORDER, CONDITION_CLASS_COLOURS } from './utils/conditionColours';
 import { MODEL_ROLES, isModelRole, type ModelRole } from './constants/roles';
-import { canAcquireLock, canEditModel, isAdmin } from './utils/permissions';
+import { canAcquireLock } from './utils/permissions';
 
 type NodeLockState = Record<
   string,
@@ -130,7 +130,6 @@ function GraphEditor() {
   const [lockType, setLockType] = useState<'edit' | 'review' | null>(null);
   const [lockHolder, setLockHolder] = useState<string | null>(null);
   const [lockExpiresAt, setLockExpiresAt] = useState<string | null>(null);
-  const [modelLockOwnedByMe, setModelLockOwnedByMe] = useState(false);
   useEffect(() => {
     const handler = () => {
       setAuth(null);
@@ -174,24 +173,6 @@ function GraphEditor() {
 
   const modelNameFromLocks = useRef<string | null>(null);
   const baseCanEdit = Boolean(auth || isGuest);
-  const hasGlobalAdminAccess = isAdmin(auth?.user.role ?? undefined);
-  const canAcquireModelEditLock = Boolean(
-    auth?.token &&
-    (
-      canAcquireLock(currentModelRole ?? undefined) ||
-      hasGlobalAdminAccess
-    ),
-  );
-  const canMutateModelWithLock = Boolean(
-    canEditModel(currentModelRole ?? undefined) ||
-    hasGlobalAdminAccess
-  );
-  const canEditCurrentModel = isGuest || (
-    Boolean(auth?.token) &&
-    canMutateModelWithLock &&
-    modelLockOwnedByMe &&
-    lockType === 'edit'
-  );
 
   const releaseActiveNodeLock = (reasonModelName?: string | null) => {
     const activeNodeId = activeNodeLockRef.current.nodeId;
@@ -341,9 +322,9 @@ function GraphEditor() {
     importFromEKS,
   } = useGraphEditor({
     initialise: Boolean(auth || isGuest),
-    canEdit: canEditCurrentModel,
+    canEdit: baseCanEdit,
     onReadOnlyAction: () => {
-      window.alert('Acquire an edit lock before changing this model.');
+      window.alert('You do not currently have permission to edit this view.');
     },
     requestNodeEdit,
     nodeLocks,
@@ -352,21 +333,10 @@ function GraphEditor() {
   const modelName = bmrgData?.stm_name?.trim() || null;
 
   const applyModelLock = (lock: ModelLockInfo) => {
-    const ownedByCurrentUser = Boolean(
-      lock.locked &&
-      (
-        lock.owner ||
-        (
-          lock.lockId &&
-          (!lock.lockedBy || lock.lockedBy === auth?.user.email)
-        )
-      ),
-    );
     setModelLockId(lock.lockId ?? null);
     setLockType(lock.locked ? lock.lockType ?? null : null);
     setLockHolder(lock.locked ? lock.lockedBy ?? null : null);
     setLockExpiresAt(lock.locked ? lock.expiresAt ?? null : null);
-    setModelLockOwnedByMe(ownedByCurrentUser);
   };
 
   const clearModelLock = () => {
@@ -374,7 +344,6 @@ function GraphEditor() {
     setLockType(null);
     setLockHolder(null);
     setLockExpiresAt(null);
-    setModelLockOwnedByMe(false);
   };
 
   useEffect(() => {
@@ -423,7 +392,7 @@ function GraphEditor() {
   }, [auth?.token, modelName]);
 
   const handleAcquireModelLock = async () => {
-    if (!modelName || !canAcquireModelEditLock) {
+    if (!modelName || !canAcquireLock(currentModelRole ?? undefined)) {
       return;
     }
     try {
@@ -462,7 +431,7 @@ function GraphEditor() {
     event: React.MouseEvent,
     node: { id: string },
   ) => {
-    if (!canEditCurrentModel) return;
+    if (!baseCanEdit) return;
     event.preventDefault();
     const graphStateId = parseStateId(node.id);
     if (graphStateId === null) return;
@@ -479,7 +448,7 @@ function GraphEditor() {
     event: React.MouseEvent,
     edge: { id: string },
   ) => {
-    if (!canEditCurrentModel) return;
+    if (!baseCanEdit) return;
     event.preventDefault();
     const match = /^transition-(\d+)$/.exec(edge.id);
     if (!match) return;
@@ -1093,13 +1062,12 @@ function GraphEditor() {
           userRole={auth?.user.role ?? null}
           currentModelRole={currentModelRole}
           isGuest={isGuest}
-          canEdit={canEditCurrentModel}
+          canEdit={baseCanEdit}
           lockHolder={lockHolder}
           lockExpiresAt={lockExpiresAt}
-          hasActiveLock={modelLockOwnedByMe}
-          onAcquireLock={canAcquireModelEditLock && !modelLockOwnedByMe ? () => { void handleAcquireModelLock(); } : undefined}
-          onRefreshLock={modelLockOwnedByMe ? () => { void handleRefreshModelLock(); } : undefined}
-          onReleaseLock={modelLockOwnedByMe && modelLockId ? () => { void handleReleaseModelLock(); } : undefined}
+          onAcquireLock={canAcquireLock(currentModelRole ?? undefined) ? () => { void handleAcquireModelLock(); } : undefined}
+          onRefreshLock={() => { void handleRefreshModelLock(); }}
+          onReleaseLock={modelLockId ? () => { void handleReleaseModelLock(); } : undefined}
           onLogout={() => {
             releaseActiveNodeLock(modelName);
             disconnectCollabSocket();
@@ -1133,10 +1101,10 @@ function GraphEditor() {
           <span
             className="dot"
             style={{
-              background: canEditCurrentModel ? 'var(--accent)' : 'var(--amber)',
+              background: baseCanEdit ? 'var(--accent)' : 'var(--amber)',
             }}
           />
-          {canEditCurrentModel ? 'Edit lock active' : 'Read-only'}
+          {baseCanEdit ? 'Node-level editing' : 'Read-only'}
         </div>
 
         {lockType && (
@@ -1279,15 +1247,15 @@ function GraphEditor() {
             onNodeDragStop={handleNodeDragStop}
             edgesFocusable
             elementsSelectable
-            edgesReconnectable={canEditCurrentModel}
+            edgesReconnectable={baseCanEdit}
             reconnectRadius={10}
             fitView
             fitViewOptions={{ padding: 0.2, includeHiddenNodes: false }}
             proOptions={{ hideAttribution: true }}
             minZoom={0.2}
             maxZoom={2}
-            nodesDraggable={canEditCurrentModel}
-            connectOnClick={canEditCurrentModel}
+            nodesDraggable={baseCanEdit}
+            connectOnClick={baseCanEdit}
             zoomOnDoubleClick={false}
             panOnDrag
             panOnScroll
@@ -1417,7 +1385,7 @@ function GraphEditor() {
         onSave={saveCurrentVersion}
         onRestore={restoreVersion}
         onDelete={deleteVersion}
-        canEdit={canEditCurrentModel}
+        canEdit={baseCanEdit}
         modelName={modelName}
         currentModelRole={currentModelRole}
         userRole={auth?.user.role ?? null}
