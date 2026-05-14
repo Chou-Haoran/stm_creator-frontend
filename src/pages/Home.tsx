@@ -42,13 +42,12 @@ const Home = () => {
                 <line x1="9" y1="7.5" x2="13.2" y2="11.2" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </div>
-            <span className="hp-header-wordmark">TERN</span>
+            <span className="hp-header-wordmark">STM Creator</span>
           </a>
 
           <nav className="hp-header-nav" aria-label="Main navigation">
             <a href="#features">Features</a>
             <a href="#how-it-works">How It Works</a>
-            <a href="#vast">VAST System</a>
             <a href="#docs">Docs</a>
           </nav>
 
@@ -101,8 +100,8 @@ const Home = () => {
                   Model Ecosystems<br /><em>Together</em> —<br />In Real Time
                 </h1>
                 <p className="hp-hero-sub">
-                  TERN gives ecologists and land managers a shared canvas to build, annotate, and compare
-                  State Transition Models using Australia's VAST classification system.
+                  STM Creator gives ecologists and land managers a shared canvas to build, annotate, and compare
+                  State Transition Models using the Australian Ecosystem Models Framework.
                 </p>
                 <div className="hp-hero-ctas">
                   <button
@@ -223,7 +222,7 @@ const Home = () => {
         <section className="hp-trust-bar" aria-label="Key capabilities">
           <div className="hp-trust-inner">
             <div className="hp-trust-item">
-              <span>6 VAST Condition Classes</span>
+              <span>3 Model templates</span>
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
@@ -245,10 +244,10 @@ const Home = () => {
           <div className="hp-section">
             <div className="hp-section-label">Features</div>
             <h2 className="hp-section-heading" id="hp-features-heading">
-              Everything a Field<br />Ecologist Needs
+              A new way develop ecosystem models <br /> collaboratively
             </h2>
             <p className="hp-section-sub">
-              From first sketch to final export, built for the complexity of real ecosystem science.
+              From first sketch to final export, using standarised templates
             </p>
 
             <div className="hp-features-grid">
@@ -263,18 +262,7 @@ const Home = () => {
                 <p className="hp-feat-desc">Multiple scientists edit the same model simultaneously. See each other's cursors, claim node edit locks, and stay in sync without merge conflicts.</p>
               </article>
 
-              <article className="hp-feat-card">
-                <div className="hp-feat-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="14" width="4" height="4" rx="1" fill="currentColor" stroke="none" opacity="0.4" />
-                    <rect x="8" y="10" width="4" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.6" />
-                    <rect x="14" y="6" width="4" height="12" rx="1" fill="currentColor" stroke="none" opacity="0.9" />
-                    <path d="M3 13L9 9L15 5" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                </div>
-                <h3 className="hp-feat-title">VAST Classification</h3>
-                <p className="hp-feat-desc">Every state is classified using Australia's VAST system, Class I (pristine) through Class VI (bare/degraded) with EKS codes attached to each node.</p>
-              </article>
+
 
               <article className="hp-feat-card">
                 <div className="hp-feat-icon" aria-hidden="true">
@@ -358,7 +346,7 @@ const Home = () => {
           <div className="hp-section">
             <div className="hp-section-label">Workflow</div>
             <h2 className="hp-section-heading" id="hp-how-heading">
-              From Login to Published<br />Model in Minutes
+              From Login to Published<br />Model!
             </h2>
 
             <div className="hp-steps-grid">
@@ -379,8 +367,8 @@ const Home = () => {
               <div className="hp-step-item">
                 <div className="hp-step-num" aria-hidden="true">3</div>
                 <div className="hp-step-body">
-                  <div className="hp-step-title">Build Your State Transition Graph</div>
-                  <p className="hp-step-desc">Add vegetation states, classify them with VAST codes, then draw transitions annotated with timing, likelihood, and drivers.</p>
+                  <div className="hp-step-title">Build Your State Transition Model</div>
+                  <p className="hp-step-desc">Add or edit ecosystem states,  add transitions and drivers.</p>
                 </div>
               </div>
               <div className="hp-step-item">
@@ -394,78 +382,13 @@ const Home = () => {
                 <div className="hp-step-num" aria-hidden="true">5</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Export &amp; Share</div>
-                  <p className="hp-step-desc">Export your model as EKS JSON for use in other VAST-compatible tools. Compare versions before finalising for stakeholder sign-off.</p>
+                  <p className="hp-step-desc">Export your model as EKS JSON for use in other VAST-compatible tools. Compare versions before finalising.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ══ VAST SYSTEM ══ */}
-        <section className="hp-vast-wrap" id="vast" aria-labelledby="hp-vast-heading">
-          <div className="hp-section">
-            <div className="hp-vast-grid">
-              <div className="hp-vast-text">
-                <div className="hp-section-label">Classification System</div>
-                <h2 className="hp-section-heading" id="hp-vast-heading">
-                  Built on Australia's<br />VAST Standard
-                </h2>
-                <p>
-                  TERN is the only collaborative STM editor natively integrated with the Vegetation Assets,
-                  States and Transitions classification framework.
-                </p>
-                <p>
-                  The VAST system classifies Australia's vegetation into six condition classes, from fully
-                  intact (Class I) to completely transformed (Class VI). Each class carries defined measurable
-                  attributes: canopy height, species richness, ground cover, and more.
-                </p>
-                <p>
-                  TERN embeds VAST directly into the editor canvas. Every state node carries its class, EKS
-                  code, and attribute values. Transitions between states reflect the real ecological processes —
-                  fire regimes, grazing pressure, restoration efforts — that drive vegetation change across the
-                  landscape.
-                </p>
-              </div>
-
-              <div className="hp-vast-visual" aria-label="VAST condition class gradient from Class I Intact to Class VI Transformed">
-                <div className="hp-vast-bar" role="img" aria-label="Colour gradient from deep green to red-brown representing VAST classes I through VI" />
-                <div className="hp-vast-labels">
-                  {[
-                    { num: 'I',   color: '#166534', label: 'Intact' },
-                    { num: 'II',  color: '#16a34a', label: 'Largely\nIntact' },
-                    { num: 'III', color: '#65a30d', label: 'Somewhat\nDegraded' },
-                    { num: 'IV',  color: '#ca8a04', label: 'Degraded' },
-                    { num: 'V',   color: '#f97316', label: 'Largely\nDegraded' },
-                    { num: 'VI',  color: '#b91c1c', label: 'Transformed' },
-                  ].map(({ num, color, label }) => (
-                    <div className="hp-vast-class" key={num}>
-                      <div className="hp-vast-class-num" style={{ color }}>{num}</div>
-                      <div className="hp-vast-class-label">{label.split('\n').map((l, i) => (
-                        <span key={i}>{l}{i === 0 && label.includes('\n') ? <br /> : null}</span>
-                      ))}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="hp-vast-node-examples">
-                  <div className="hp-vast-node-header">Example State Nodes</div>
-                  <div className="hp-vast-node-tags">
-                    {[
-                      { label: 'A1 · Pristine',  bg: '#166534' },
-                      { label: 'A2 · Intact',    bg: '#16a34a' },
-                      { label: 'B1 · Modified',  bg: '#65a30d' },
-                      { label: 'B2 · Degraded',  bg: '#ca8a04' },
-                      { label: 'C1 · Severely',  bg: '#f97316' },
-                      { label: 'C2 · Bare',      bg: '#b91c1c' },
-                    ].map(({ label, bg }) => (
-                      <span key={label} className="hp-vast-tag" style={{ background: bg }}>{label}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
 
         {/* ══ FINAL CTA ══ */}
@@ -473,7 +396,7 @@ const Home = () => {
           <div className="hp-section hp-cta-inner">
             <h2 className="hp-cta-headline" id="hp-cta-heading">Ready to Map Your Ecosystem?</h2>
             <p className="hp-cta-sub">
-              Join ecologists and land managers already using TERN to build collaborative, VAST-compliant
+              Join reserchers, ecologists and land managers already using STM creator to build collaborative
               state transition models.
             </p>
             <div className="hp-cta-actions">
@@ -505,9 +428,9 @@ const Home = () => {
                   <line x1="9" y1="7.5" x2="13.2" y2="11.2" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </div>
-              <span className="hp-footer-wordmark">TERN</span>
+              <span className="hp-footer-wordmark">STM Creator</span>
             </div>
-            <p className="hp-footer-brand-desc">Collaborative State Transition Model editing for Australian ecologists.</p>
+            <p className="hp-footer-brand-desc">Collaborative State Transition Model development</p>
           </div>
 
           <div>
@@ -525,7 +448,6 @@ const Home = () => {
             <nav className="hp-footer-links" aria-label="Resource links" id="docs">
               <a href="#">API Docs (Swagger)</a>
               <a href="#">GitHub — Frontend</a>
-              <a href="#" aria-label="VAST System Overview (external link)">VAST System Overview ↗</a>
             </nav>
           </div>
 
@@ -541,7 +463,7 @@ const Home = () => {
         </div>
 
         <div className="hp-footer-bottom">
-          <span className="hp-footer-bottom-left">© 2026 TERN. Built for Australian ecological science.</span>
+          <span className="hp-footer-bottom-left">© 2026 STM Creator. Built for Australian ecological science.</span>
           <div className="hp-footer-bottom-right">
             <a href="#">Privacy Policy</a>
             <a href="#">Terms of Use</a>
