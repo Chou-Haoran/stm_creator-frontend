@@ -118,92 +118,100 @@ const Home = () => {
               </div>
 
               {/* Right: canvas mockup */}
+              {/* Right: canvas mockup */}
               <div
-                className="hp-canvas-mockup"
-                role="img"
-                aria-label="TERN collaborative STM canvas editor showing vegetation state nodes and transitions"
+                  className="hp-canvas-mockup"
+                  role="img"
+                  aria-label="TERN collaborative STM canvas editor showing vegetation state nodes and transitions"
               >
                 <div className="hp-canvas-grid" aria-hidden="true" />
 
                 <svg
-                  className="hp-canvas-svg"
-                  viewBox="0 0 560 420"
-                  fill="none"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
+                    className="hp-canvas-svg"
+                    viewBox="0 0 760 460"
+                    fill="none"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                      <path d="M0 0L6 3L0 6" fill="none" stroke="#94a3b8" strokeWidth="1.2" />
+                    <marker id="arr-black" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                      <path d="M0 0L7 3.5L0 7" fill="none" stroke="#1f2937" strokeWidth="1.4" />
                     </marker>
-                    <marker id="arr-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                      <path d="M0 0L6 3L0 6" fill="none" stroke="#10b981" strokeWidth="1.2" />
+                    <marker id="arr-teal" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                      <path d="M0 0L7 3.5L0 7" fill="none" stroke="#2a9d8f" strokeWidth="1.4" />
                     </marker>
                     <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
                       <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity={0.12} />
                     </filter>
                   </defs>
 
-                  {/* Transition edges */}
-                  <path d="M190 118 Q260 80 340 118" stroke="#94a3b8" strokeWidth="1.5" fill="none" markerEnd="url(#arr)" />
-                  <path d="M190 142 Q130 200 155 258" stroke="#94a3b8" strokeWidth="1.5" fill="none" markerEnd="url(#arr)" />
-                  <path d="M360 142 Q390 200 370 258" stroke="#10b981" strokeWidth="1.5" fill="none" markerEnd="url(#arr-g)" />
-                  <path d="M190 282 Q260 330 330 282" stroke="#94a3b8" strokeWidth="1.5" fill="none" markerEnd="url(#arr)" />
-                  <path d="M350 118 Q460 160 420 258" stroke="#94a3b8" strokeWidth="1.5" fill="none" markerEnd="url(#arr)" />
-                  <path d="M175 270 Q110 340 155 360 Q230 380 280 300" stroke="#94a3b8" strokeWidth="1.2" strokeDasharray="4 3" fill="none" markerEnd="url(#arr)" />
+                  {/* ===== Transitions ===== */}
 
-                  {/* Edge labels */}
-                  <rect x="248" y="72" width="64" height="19" rx="4" fill="white" stroke="#e2e8f0" strokeWidth="1" />
-                  <text x="280" y="85" fontFamily="IBM Plex Mono,monospace" fontSize="9.5" fill="#64748b" textAnchor="middle">Fire · 25 yrs</text>
+                  {/* Top row: Class I  <-->  Class II  (horizontal pair) */}
+                  {/* Black arrow: I -> II (degradation, going right) */}
+                  <path d="M178 58 L322 58" stroke="#1f2937" strokeWidth="1.6" fill="none" markerEnd="url(#arr-black)" />
+                  {/* Teal arrow: II -> I (restoration, going left) */}
+                  <path d="M322 78 L178 78" stroke="#2a9d8f" strokeWidth="1.6" fill="none" markerEnd="url(#arr-teal)" />
 
-                  <rect x="108" y="195" width="48" height="18" rx="4" fill="white" stroke="#e2e8f0" strokeWidth="1" />
-                  <text x="132" y="208" fontFamily="IBM Plex Mono,monospace" fontSize="9.5" fill="#64748b" textAnchor="middle">Grazing</text>
+                  {/* Class II <--> Class III (vertical pair, top-right to middle) */}
+                  {/* Black solid: II -> III (down) */}
+                  <path d="M412 122 L412 198" stroke="#1f2937" strokeWidth="1.6" fill="none" markerEnd="url(#arr-black)" />
+                  {/* Teal dashed: III -> II (up) */}
+                  <path d="M432 198 L432 122" stroke="#2a9d8f" strokeWidth="1.6" strokeDasharray="5 4" fill="none" markerEnd="url(#arr-teal)" />
 
-                  <rect x="376" y="195" width="58" height="18" rx="4" fill="#ecfdf5" stroke="#a7f3d0" strokeWidth="1" />
-                  <text x="405" y="208" fontFamily="IBM Plex Mono,monospace" fontSize="9.5" fill="#059669" textAnchor="middle">Restore</text>
+                  {/* Class III <--> Class IV (vertical pair, middle to bottom-middle) */}
+                  {/* Black solid: III -> IV (down) */}
+                  <path d="M412 282 L412 358" stroke="#1f2937" strokeWidth="1.6" fill="none" markerEnd="url(#arr-black)" />
+                  {/* Teal solid: IV -> III (up) */}
+                  <path d="M432 358 L432 282" stroke="#2a9d8f" strokeWidth="1.6" fill="none" markerEnd="url(#arr-teal)" />
 
-                  <rect x="242" y="330" width="76" height="18" rx="4" fill="white" stroke="#e2e8f0" strokeWidth="1" />
-                  <text x="280" y="343" fontFamily="IBM Plex Mono,monospace" fontSize="9.5" fill="#64748b" textAnchor="middle">Drought · 5 yrs</text>
+                  {/* Class IV <--> Class V (horizontal pair, bottom row) */}
+                  {/* Black solid: IV -> V (right) */}
+                  <path d="M518 398 L602 398" stroke="#1f2937" strokeWidth="1.6" fill="none" markerEnd="url(#arr-black)" />
+                  {/* Teal solid: V -> IV (left) */}
+                  <path d="M602 418 L518 418" stroke="#2a9d8f" strokeWidth="1.6" fill="none" markerEnd="url(#arr-teal)" />
 
-                  {/* Node: Class I */}
-                  <rect x="128" y="98" width="140" height="60" rx="10" fill="#166534" filter="url(#nodeShadow)" />
-                  <text x="190" y="122" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fontWeight="600" fill="white" textAnchor="middle">Close to reference tree layer</text>
-                  <text x="190" y="138" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">with close to reference tree/ground layers</text>
+                  {/* ===== Nodes ===== */}
 
-                  {/* Node: Class II */}
-                  <rect x="298" y="98" width="128" height="60" rx="10" fill="#16a34a" filter="url(#nodeShadow)" />
-                  <text x="362" y="122" fontFamily="IBM Plex Sans,sans-serif" fontSize="11" fontWeight="600" fill="white" textAnchor="middle">Class II — Lg. Intact</text>
-                  <text x="362" y="138" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">EKS·A2·largely-intact</text>
+                  {/* Node: Class I — Close to reference (top-left, dark teal) */}
+                  <rect x="38" y="22" width="140" height="92" rx="6" fill="#2a9d8f" filter="url(#nodeShadow)" />
+                  <text x="108" y="46" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Close to reference</text>
+                  <text x="108" y="60" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">tree layer</text>
+                  <text x="108" y="78" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">with close to</text>
+                  <text x="108" y="91" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">reference shrub/ground</text>
+                  <text x="108" y="104" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">layers</text>
 
-                  {/* Node: Class III */}
-                  <rect x="94" y="242" width="136" height="60" rx="10" fill="#65a30d" filter="url(#nodeShadow)" />
-                  <text x="162" y="266" fontFamily="IBM Plex Sans,sans-serif" fontSize="11" fontWeight="600" fill="white" textAnchor="middle">Class III — Sw. Degraded</text>
-                  <text x="162" y="282" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">EKS·B1·sw-degraded</text>
+                  {/* Node: Class II — Highly modified tree, close-to-ref understory (top-right, light teal/sage) */}
+                  <rect x="322" y="22" width="180" height="92" rx="6" fill="#8ec9bf" filter="url(#nodeShadow)" />
+                  <text x="412" y="46" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="#0f172a" textAnchor="middle">Highly modified tree layer</text>
+                  <text x="412" y="66" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">with close to reference</text>
+                  <text x="412" y="80" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
 
-                  {/* Node: Class IV */}
-                  <rect x="290" y="242" width="120" height="60" rx="10" fill="#ca8a04" filter="url(#nodeShadow)" />
-                  <text x="350" y="266" fontFamily="IBM Plex Sans,sans-serif" fontSize="11" fontWeight="600" fill="white" textAnchor="middle">Class IV — Degraded</text>
-                  <text x="350" y="282" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">EKS·B2·degraded</text>
+                  {/* Node: Class III — Highly modified tree, modified understory (middle, yellow/tan) */}
+                  <rect x="322" y="198" width="180" height="84" rx="6" fill="#e9d8a6" filter="url(#nodeShadow)" />
+                  <text x="412" y="222" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="#0f172a" textAnchor="middle">Highly modified tree layer</text>
+                  <text x="412" y="242" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">with modified</text>
+                  <text x="412" y="256" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
 
-                  {/* Node: Class V */}
-                  <rect x="428" y="242" width="110" height="60" rx="10" fill="#ea580c" filter="url(#nodeShadow)" />
-                  <text x="483" y="266" fontFamily="IBM Plex Sans,sans-serif" fontSize="11" fontWeight="600" fill="white" textAnchor="middle">Class V — Lg. Deg.</text>
-                  <text x="483" y="282" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">EKS·C1·largely-deg.</text>
+                  {/* Node: Class IV — Highly modified tree, highly modified understory (bottom-middle, peach) */}
+                  <rect x="322" y="358" width="196" height="84" rx="6" fill="#fcd5b5" filter="url(#nodeShadow)" />
+                  <text x="420" y="382" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="#0f172a" textAnchor="middle">Highly modified tree layer</text>
+                  <text x="420" y="402" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">with highly modified</text>
+                  <text x="420" y="416" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
 
-                  {/* Selection ring on Class II */}
-                  <rect x="294" y="94" width="136" height="68" rx="13" stroke="#10b981" strokeWidth="2" fill="none" />
-
-                  {/* Node lock badge */}
-                  <rect x="414" y="91" width="60" height="18" rx="5" fill="#10b981" />
-                  <text x="444" y="104" fontFamily="IBM Plex Mono,monospace" fontSize="8.5" fontWeight="600" fill="white" textAnchor="middle">🔒 Sarah</text>
+                  {/* Node: Class V — Collapsed tree layer (bottom-right, coral/red) */}
+                  <rect x="602" y="358" width="150" height="84" rx="6" fill="#d96a6a" filter="url(#nodeShadow)" />
+                  <text x="677" y="382" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Collapsed tree layer</text>
+                  <text x="677" y="402" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">with highly modified</text>
+                  <text x="677" y="416" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">shrub/ground layers</text>
                 </svg>
 
                 {/* Cursor: Sarah */}
                 <div className="hp-cursor hp-cursor-sarah" aria-hidden="true">
                   <svg width="16" height="20" viewBox="0 0 16 20">
-                    <path d="M2 2L14 9L8.5 10.5L6 16L2 2Z" fill="#10b981" stroke="white" strokeWidth="1.2" />
+                    <path d="M2 2L14 9L8.5 10.5L6 16L2 2Z" fill="#2a9d8f" stroke="white" strokeWidth="1.2" />
                   </svg>
-                  <span className="hp-cursor-label" style={{ background: '#10b981' }}>Sarah</span>
+                  <span className="hp-cursor-label" style={{ background: '#2a9d8f' }}>Sarah</span>
                 </div>
 
                 {/* Cursor: James */}
@@ -215,6 +223,7 @@ const Home = () => {
                 </div>
               </div>
             </div>
+
           </div>
         </section>
 
