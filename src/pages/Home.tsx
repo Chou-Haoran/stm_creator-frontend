@@ -100,8 +100,8 @@ const Home = () => {
                   Model Ecosystems<br /><em>Together</em> —<br />In Real Time
                 </h1>
                 <p className="hp-hero-sub">
-                  STM Creator gives ecologists and land managers a shared canvas to build, annotate, and compare
-                  State Transition Models using the Australian Ecosystem Models Framework.
+                  STM Creator is a shared canvas to build, annotate, and compare
+                  state-and-transition models using the Australian Ecosystem Models Framework.
                 </p>
                 <div className="hp-hero-ctas">
                   <button
@@ -166,9 +166,9 @@ const Home = () => {
                   <text x="280" y="343" fontFamily="IBM Plex Mono,monospace" fontSize="9.5" fill="#64748b" textAnchor="middle">Drought · 5 yrs</text>
 
                   {/* Node: Class I */}
-                  <rect x="128" y="98" width="124" height="60" rx="10" fill="#166534" filter="url(#nodeShadow)" />
-                  <text x="190" y="122" fontFamily="IBM Plex Sans,sans-serif" fontSize="11" fontWeight="600" fill="white" textAnchor="middle">Class I — Intact</text>
-                  <text x="190" y="138" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">EKS·A1·pristine</text>
+                  <rect x="128" y="98" width="140" height="60" rx="10" fill="#166534" filter="url(#nodeShadow)" />
+                  <text x="190" y="122" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fontWeight="600" fill="white" textAnchor="middle">Close to reference tree layer</text>
+                  <text x="190" y="138" fontFamily="IBM Plex Mono,monospace" fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">with close to reference tree/ground layers</text>
 
                   {/* Node: Class II */}
                   <rect x="298" y="98" width="128" height="60" rx="10" fill="#16a34a" filter="url(#nodeShadow)" />
@@ -226,15 +226,15 @@ const Home = () => {
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>Real-Time Multi-User Editing</span>
+              <span>Multi-User Editing</span>
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>Milestone Snapshots &amp; Restore</span>
+              <span>Version Snapshots &amp; Restore</span>
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>EKS JSON Export</span>
+              <span>JSON Export</span>
             </div>
           </div>
         </section>
@@ -244,10 +244,10 @@ const Home = () => {
           <div className="hp-section">
             <div className="hp-section-label">Features</div>
             <h2 className="hp-section-heading" id="hp-features-heading">
-              A new way develop ecosystem models <br /> collaboratively
+              A tool to develop ecosystem models <br /> collaboratively
             </h2>
             <p className="hp-section-sub">
-              From first sketch to final export, using standarised templates
+               Using standarised templates to rapidly create state-and-transition models
             </p>
 
             <div className="hp-features-grid">
@@ -259,7 +259,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="hp-feat-title">Live Collaboration</h3>
-                <p className="hp-feat-desc">Multiple scientists edit the same model simultaneously. See each other's cursors, claim node edit locks, and stay in sync without merge conflicts.</p>
+                <p className="hp-feat-desc">Users can work on the same model simultaneously, just like an electronic white board.</p>
               </article>
 
 
@@ -273,7 +273,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="hp-feat-title">Smart Auto-Layout</h3>
-                <p className="hp-feat-desc">One click re-arranges your entire model using the ELK layout engine, running in a background worker so your canvas never freezes.</p>
+                <p className="hp-feat-desc">Uses standardised templated layouts that can be easliy changed using different layout engines.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -284,8 +284,8 @@ const Home = () => {
                     <path d="M6.5 3.5L4 2M13.5 3.5L16 2" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Milestone Snapshots</h3>
-                <p className="hp-feat-desc">Capture named snapshots at any point. Restore the full canvas to any past milestone if a session goes wrong or stakeholders change their mind.</p>
+                <h3 className="hp-feat-title">Version Snapshots</h3>
+                <p className="hp-feat-desc">Create versions at any point. Restore the full canvas to any previous version.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -298,7 +298,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="hp-feat-title">Version Comparison</h3>
-                <p className="hp-feat-desc">Compare any two milestones side-by-side. Instantly see which states and transitions were added, removed, or modified between versions.</p>
+                <p className="hp-feat-desc">Compare any two versions of a model side-by-side. Instantly see which states and transitions were added, removed, or modified between versions.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -312,7 +312,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="hp-feat-title">Model Templates</h3>
-                <p className="hp-feat-desc">Start from stakeholder-defined ecosystem templates with pre-loaded vegetation states. Draw transitions yourself to explore degradation pathways.</p>
+                <p className="hp-feat-desc">Create a model from a template to rapidly add standardised states.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -323,8 +323,8 @@ const Home = () => {
                     <path d="M6.5 8.5h4M8.5 6.5v4" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Driver Autocomplete</h3>
-                <p className="hp-feat-desc">Type any driver (fire, grazing, drought) and fuzzy-search against the full driver library. Consistent labelling across all models in your organisation.</p>
+                <h3 className="hp-feat-title">Easy driver assignment</h3>
+                <p className="hp-feat-desc">Easily search through standardised driver list to add any driver (e.g. fire, grazing, drought) to a transition.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -334,9 +334,22 @@ const Home = () => {
                     <path d="M7 10l2 2 4-4" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Role-Based Access</h3>
-                <p className="hp-feat-desc">Assign Admin, Editor, or Viewer roles per model. Admins control structure; Editors collaborate; Viewers observe full RBAC enforced throughout.</p>
+                <h3 className="hp-feat-title">Role-Based Access and management</h3>
+                <p className="hp-feat-desc">Manage you models access and editing through assignment of role based permisions. Give editing access to model developers, and review access to model reviewers.</p>
               </article>
+
+              <article className="hp-feat-card">
+                <div className="hp-feat-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 2L3 6v4c0 4 3 7 7 8 4-1 7-4 7-8V6L10 2z" />
+                    <path d="M7 10l2 2 4-4" />
+                  </svg>
+                </div>
+                <h3 className="hp-feat-title">Review Comments</h3>
+                <p className="hp-feat-desc">Allows reviewers to add comments to the model for model creators to resolve.</p>
+              </article>
+
+
             </div>
           </div>
         </section>
@@ -361,13 +374,13 @@ const Home = () => {
                 <div className="hp-step-num" aria-hidden="true">2</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Open or Create a Model</div>
-                  <p className="hp-step-desc">Pick from existing ecosystem models or start fresh from a templates with pre-defined VAST states.</p>
+                  <p className="hp-step-desc">Pick from existing ecosystem models or start fresh from a templates with pre-defined ecosystem states.</p>
                 </div>
               </div>
               <div className="hp-step-item">
                 <div className="hp-step-num" aria-hidden="true">3</div>
                 <div className="hp-step-body">
-                  <div className="hp-step-title">Build Your State Transition Model</div>
+                  <div className="hp-step-title">Build Your State-and-Transition Model</div>
                   <p className="hp-step-desc">Add or edit ecosystem states,  add transitions and drivers.</p>
                 </div>
               </div>
@@ -375,14 +388,14 @@ const Home = () => {
                 <div className="hp-step-num" aria-hidden="true">4</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Collaborate &amp; Refine</div>
-                  <p className="hp-step-desc">Invite your team. Watch live cursors move, see node locks appear, and save named milestones as your model evolves.</p>
+                  <p className="hp-step-desc">Invite your team. Watch live cchanges to the model and save named versions as your model evolves.</p>
                 </div>
               </div>
               <div className="hp-step-item">
                 <div className="hp-step-num" aria-hidden="true">5</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Export &amp; Share</div>
-                  <p className="hp-step-desc">Export your model as EKS JSON for use in other VAST-compatible tools. Compare versions before finalising.</p>
+                  <p className="hp-step-desc">Export your model as JSON for use in other tools. Compare versions before finalising.</p>
                 </div>
               </div>
             </div>
@@ -396,8 +409,8 @@ const Home = () => {
           <div className="hp-section hp-cta-inner">
             <h2 className="hp-cta-headline" id="hp-cta-heading">Ready to Map Your Ecosystem?</h2>
             <p className="hp-cta-sub">
-              Join reserchers, ecologists and land managers already using STM creator to build collaborative
-              state transition models.
+              Start using STM creator by creating a free account and start building your first
+              state-and-transition model today.
             </p>
             <div className="hp-cta-actions">
               <button className="hp-btn-cta-primary" aria-label="Create a free TERN account" onClick={goToEditor}>
