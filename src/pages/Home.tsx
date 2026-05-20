@@ -128,7 +128,7 @@ const Home = () => {
 
                 <svg
                     className="hp-canvas-svg"
-                    viewBox="0 0 760 460"
+                    viewBox="0 0 830 460"
                     fill="none"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
@@ -151,7 +151,7 @@ const Home = () => {
                   {/* Black arrow: I -> II (degradation, going right) */}
                   <path d="M178 58 L322 58" stroke="#1f2937" strokeWidth="1.6" fill="none" markerEnd="url(#arr-black)" />
                   {/* Teal arrow: II -> I (restoration, going left) */}
-                  <path d="M322 78 L178 78" stroke="#2a9d8f" strokeWidth="1.6" fill="none" markerEnd="url(#arr-teal)" />
+                  <path d="M322 78 L235 78" stroke="#2a9d8f" strokeWidth="1.6" fill="none" markerEnd="url(#arr-teal)" />
 
                   {/* Class II <--> Class III (vertical pair, top-right to middle) */}
                   {/* Black solid: II -> III (down) */}
@@ -174,21 +174,21 @@ const Home = () => {
                   {/* ===== Nodes ===== */}
 
                   {/* Node: Class I — Close to reference (top-left, dark teal) */}
-                  <rect x="38" y="22" width="140" height="92" rx="6" fill="#2a9d8f" filter="url(#nodeShadow)" />
-                  <text x="108" y="46" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Close to reference</text>
-                  <text x="108" y="60" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">tree layer</text>
-                  <text x="108" y="78" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">with close to</text>
-                  <text x="108" y="91" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">reference shrub/ground</text>
-                  <text x="108" y="104" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">layers</text>
+                  <rect x="38" y="22" width="196" height="92" rx="6" fill="#2a9d8f" filter="url(#nodeShadow)" />
+                  <text x="138" y="46" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Close to reference</text>
+                  <text x="138" y="60" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">tree layer</text>
+                  <text x="138" y="78" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">with close to</text>
+                  <text x="138" y="91" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">reference shrub/ground</text>
+                  <text x="138" y="104" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.92)" textAnchor="middle">layers</text>
 
                   {/* Node: Class II — Highly modified tree, close-to-ref understory (top-right, light teal/sage) */}
-                  <rect x="322" y="22" width="180" height="92" rx="6" fill="#8ec9bf" filter="url(#nodeShadow)" />
+                  <rect x="322" y="22" width="196" height="92" rx="6" fill="#8ec9bf" filter="url(#nodeShadow)" />
                   <text x="412" y="46" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="#0f172a" textAnchor="middle">Highly modified tree layer</text>
                   <text x="412" y="66" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">with close to reference</text>
                   <text x="412" y="80" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
 
                   {/* Node: Class III — Highly modified tree, modified understory (middle, yellow/tan) */}
-                  <rect x="322" y="198" width="180" height="84" rx="6" fill="#e9d8a6" filter="url(#nodeShadow)" />
+                  <rect x="322" y="198" width="196" height="84" rx="6" fill="#e9d8a6" filter="url(#nodeShadow)" />
                   <text x="412" y="222" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="#0f172a" textAnchor="middle">Highly modified tree layer</text>
                   <text x="412" y="242" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">with modified</text>
                   <text x="412" y="256" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
@@ -200,10 +200,10 @@ const Home = () => {
                   <text x="420" y="416" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="#0f172a" textAnchor="middle">shrub/ground layers</text>
 
                   {/* Node: Class V — Collapsed tree layer (bottom-right, coral/red) */}
-                  <rect x="602" y="358" width="150" height="84" rx="6" fill="#d96a6a" filter="url(#nodeShadow)" />
-                  <text x="677" y="382" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Collapsed tree layer</text>
-                  <text x="677" y="402" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">with highly modified</text>
-                  <text x="677" y="416" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">shrub/ground layers</text>
+                  <rect x="602" y="358" width="196" height="84" rx="6" fill="#d96a6a" filter="url(#nodeShadow)" />
+                  <text x="702" y="382" fontFamily="IBM Plex Sans,sans-serif" fontSize="11.5" fontWeight="700" fill="white" textAnchor="middle">Collapsed tree layer</text>
+                  <text x="702" y="402" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">with highly modified</text>
+                  <text x="702" y="416" fontFamily="IBM Plex Sans,sans-serif" fontSize="10" fill="rgba(255,255,255,0.95)" textAnchor="middle">shrub/ground layers</text>
                 </svg>
 
                 {/* Cursor: Sarah */}
@@ -235,15 +235,15 @@ const Home = () => {
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>Multi-User Editing</span>
+              <span>Multi-user editing</span>
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>Version Snapshots &amp; Restore</span>
+              <span>Version snapshots &amp; Restore</span>
             </div>
             <div className="hp-trust-divider" role="separator" />
             <div className="hp-trust-item">
-              <span>JSON Export</span>
+              <span>JSON export</span>
             </div>
           </div>
         </section>
@@ -267,7 +267,7 @@ const Home = () => {
                     <path d="M9.8 9L12 8M7 13v2M14 9.5v3" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Live Collaboration</h3>
+                <h3 className="hp-feat-title">Live collaboration</h3>
                 <p className="hp-feat-desc">Users can work on the same model simultaneously, just like an electronic white board.</p>
               </article>
 
@@ -281,8 +281,8 @@ const Home = () => {
                     <path d="M14 2l2 2-2 2" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Smart Auto-Layout</h3>
-                <p className="hp-feat-desc">Uses standardised templated layouts that can be easliy changed using different layout engines.</p>
+                <h3 className="hp-feat-title">Smart auto-layout</h3>
+                <p className="hp-feat-desc">Uses standardised layouts that can be easliy changed using different layout engines.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -293,7 +293,7 @@ const Home = () => {
                     <path d="M6.5 3.5L4 2M13.5 3.5L16 2" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Version Snapshots</h3>
+                <h3 className="hp-feat-title">Version snapshots</h3>
                 <p className="hp-feat-desc">Create versions at any point. Restore the full canvas to any previous version.</p>
               </article>
 
@@ -306,7 +306,7 @@ const Home = () => {
                     <path d="M4.5 7h2M4.5 10h2M4.5 13h2M14.5 7l1.5 1.5-1.5 1.5" strokeLinecap="round" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Version Comparison</h3>
+                <h3 className="hp-feat-title">Version comparison</h3>
                 <p className="hp-feat-desc">Compare any two versions of a model side-by-side. Instantly see which states and transitions were added, removed, or modified between versions.</p>
               </article>
 
@@ -320,7 +320,7 @@ const Home = () => {
                     <path d="M8.8 8L11.2 8M8 8.8L10.2 12.2" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Model Templates</h3>
+                <h3 className="hp-feat-title">Model templates</h3>
                 <p className="hp-feat-desc">Create a model from a template to rapidly add standardised states.</p>
               </article>
 
@@ -333,7 +333,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="hp-feat-title">Easy driver assignment</h3>
-                <p className="hp-feat-desc">Easily search through standardised driver list to add any driver (e.g. fire, grazing, drought) to a transition.</p>
+                <p className="hp-feat-desc">Easily search through a standardised driver list to add any driver (e.g. fire, grazing, drought) to a transition.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -343,8 +343,8 @@ const Home = () => {
                     <path d="M7 10l2 2 4-4" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Role-Based Access and management</h3>
-                <p className="hp-feat-desc">Manage you models access and editing through assignment of role based permisions. Give editing access to model developers, and review access to model reviewers.</p>
+                <h3 className="hp-feat-title">Role-based access and management</h3>
+                <p className="hp-feat-desc">Manage your model access and editing through assignment of role-based permisions. Give editing access to model developers, and review access to model reviewers.</p>
               </article>
 
               <article className="hp-feat-card">
@@ -354,7 +354,7 @@ const Home = () => {
                     <path d="M7 10l2 2 4-4" />
                   </svg>
                 </div>
-                <h3 className="hp-feat-title">Review Comments</h3>
+                <h3 className="hp-feat-title">Review comments</h3>
                 <p className="hp-feat-desc">Allows reviewers to add comments to the model for model creators to resolve.</p>
               </article>
 
@@ -368,7 +368,7 @@ const Home = () => {
           <div className="hp-section">
             <div className="hp-section-label">Workflow</div>
             <h2 className="hp-section-heading" id="hp-how-heading">
-              From Login to Published<br />Model!
+              From Login to published<br />model!
             </h2>
 
             <div className="hp-steps-grid">
@@ -383,7 +383,7 @@ const Home = () => {
                 <div className="hp-step-num" aria-hidden="true">2</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Open or Create a Model</div>
-                  <p className="hp-step-desc">Pick from existing ecosystem models or start fresh from a templates with pre-defined ecosystem states.</p>
+                  <p className="hp-step-desc">Pick from existing ecosystem models or start fresh from a template with pre-defined ecosystem states.</p>
                 </div>
               </div>
               <div className="hp-step-item">
@@ -397,7 +397,7 @@ const Home = () => {
                 <div className="hp-step-num" aria-hidden="true">4</div>
                 <div className="hp-step-body">
                   <div className="hp-step-title">Collaborate &amp; Refine</div>
-                  <p className="hp-step-desc">Invite your team. Watch live cchanges to the model and save named versions as your model evolves.</p>
+                  <p className="hp-step-desc">Invite your team. Watch live changes to the model and save named versions as your model evolves.</p>
                 </div>
               </div>
               <div className="hp-step-item">
@@ -416,17 +416,17 @@ const Home = () => {
         {/* ══ FINAL CTA ══ */}
         <section className="hp-cta-wrap" aria-labelledby="hp-cta-heading">
           <div className="hp-section hp-cta-inner">
-            <h2 className="hp-cta-headline" id="hp-cta-heading">Ready to Map Your Ecosystem?</h2>
+            <h2 className="hp-cta-headline" id="hp-cta-heading">Ready to model your ecosystem?</h2>
             <p className="hp-cta-sub">
               Start using STM creator by creating a free account and start building your first
               state-and-transition model today.
             </p>
             <div className="hp-cta-actions">
-              <button className="hp-btn-cta-primary" aria-label="Create a free TERN account" onClick={goToEditor}>
-                Create a Free Account
+              <button className="hp-btn-cta-primary" aria-label="Create a free account" onClick={goToEditor}>
+                Create a free account
               </button>
-              <button className="hp-btn-cta-link" aria-label="Explore TERN as a guest" onClick={goToEditor}>
-                Explore as Guest
+              <button className="hp-btn-cta-link" aria-label="Explore STM Creator as a guest" onClick={goToEditor}>
+                Explore as guest
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -452,16 +452,16 @@ const Home = () => {
               </div>
               <span className="hp-footer-wordmark">STM Creator</span>
             </div>
-            <p className="hp-footer-brand-desc">Collaborative State Transition Model development</p>
+            <p className="hp-footer-brand-desc">Collaborative state-and-transition model development</p>
           </div>
 
           <div>
             <div className="hp-footer-col-title">Product</div>
             <nav className="hp-footer-links" aria-label="Product links">
               <a href="#features">Features</a>
-              <a href="#how-it-works">How It Works</a>
-              <a href="#features">Model Templates</a>
-              <a href="#features">EKS Export</a>
+              <a href="#how-it-works">How it works</a>
+              <a href="#features">Model templates</a>
+              <a href="#features">EKS export</a>
             </nav>
           </div>
 
