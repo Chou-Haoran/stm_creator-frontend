@@ -136,11 +136,16 @@ which cannot bind to port 80 without elevated privileges). The `-p 80:8080` flag
 maps host port 80 to the container's port 8080 so the app is reachable at
 `http://localhost`.
 
-### Full-stack setup
+### Local development
 
-A `docker-compose.yml` at the root of the **backend repository** wires the
-frontend, backend, and database together in a single `docker compose up` command.
-Refer to that repository for the compose file and its environment configuration.
+Run the backend with `docker compose up` (see the [backend repository](#backend-repository)),
+then start the frontend with:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000 npm run dev
+```
+
+Or set `VITE_API_BASE_URL=http://localhost:3000` in your `.env.local` and run `npm run dev`.
 
 ---
 
