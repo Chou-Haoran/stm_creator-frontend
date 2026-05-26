@@ -134,5 +134,3 @@ Additional handover documentation: [CONFLUENCE_URL]
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-> **Note:** The `LICENSE` file currently carries the copyright of webkid GmbH (the React Flow template this project was scaffolded from). Update the copyright holder to the project team before final public release.
