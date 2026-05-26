@@ -1,0 +1,45 @@
+# Dependencies — never send node_modules into the build context.
+# The deps stage installs them fresh from the lockfile.
+node_modules
+
+# npm / yarn / pnpm debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Previous build outputs — the builder stage produces these fresh.
+.next
+.nuxt
+dist
+build
+out
+.output
+
+# Test coverage reports
+coverage
+
+# Version control
+.git
+.gitignore
+
+# Environment files — NEVER bake real secrets into a Docker image.
+# .env.example is kept so it ends up in the build context (useful
+# for documentation) but all real .env files are excluded.
+.env
+.env.*
+!.env.example
+
+# Editor / IDE configs
+.vscode
+.idea
+
+# macOS metadata
+.DS_Store
+
+# Documentation and repository metadata — not needed in the image.
+README.md
+*.md
+Dockerfile
+.dockerignore
+docker-compose.yml
