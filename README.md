@@ -146,7 +146,7 @@ Refer to that repository for the compose file and its environment configuration.
 
 ## Backend repository
 
-[BACKEND_REPO_URL]
+[ibraKH/tern_backend](https://github.com/ibraKH/tern_backend)
 
 ---
 
@@ -160,8 +160,6 @@ Full developer, operation, and API manuals are in the `doc/` folder:
 | `doc/OPERATION_MANUAL_EN.pdf` | Deployment and operations runbook |
 | `doc/API_MANUAL_EN.pdf` | Backend REST API reference |
 | `doc/PROJECT_FILE_OVERVIEW_EN.pdf` | Codebase structure overview |
-
-Additional handover documentation: [CONFLUENCE_URL]
 
 ---
 
