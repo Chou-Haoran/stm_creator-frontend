@@ -104,9 +104,43 @@ Optional flags: `ROLE=Admin`, `MODEL_NAME="BMRG Rainforests"`, `SAVE=true` (save
 
 ---
 
-## Docker / full-stack setup
+## Running with Docker
 
-A `Dockerfile` and full-stack `docker-compose.yml` are included as part of the project handover package. Refer to the backend repository for the compose file that wires the frontend, backend, and database together.
+The repository ships a production-ready `Dockerfile` (multi-stage, nginx, non-root).
+
+### Build the image
+
+```bash
+docker build \
+  --build-arg VITE_API_BASE_URL=https://api.your-domain.com \
+  -t stm-creator-frontend .
+```
+
+All `VITE_*` variables are baked into the JavaScript bundle at build time. Supply
+them as `--build-arg` flags; they cannot be changed at container runtime.
+
+| Build argument | Required | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | Yes | Base URL of the backend REST API (no trailing slash). |
+| `VITE_COLLAB_URL` | No | Socket.IO server URL. Defaults to `VITE_API_BASE_URL`. |
+| `VITE_MODEL_NAME` | No | Default STM model name for the demo dataset loader. |
+
+### Run the container
+
+```bash
+docker run -p 80:8080 stm-creator-frontend
+```
+
+The container listens on port **8080** internally (nginx runs as a non-root user,
+which cannot bind to port 80 without elevated privileges). The `-p 80:8080` flag
+maps host port 80 to the container's port 8080 so the app is reachable at
+`http://localhost`.
+
+### Full-stack setup
+
+A `docker-compose.yml` at the root of the **backend repository** wires the
+frontend, backend, and database together in a single `docker compose up` command.
+Refer to that repository for the compose file and its environment configuration.
 
 ---
 
