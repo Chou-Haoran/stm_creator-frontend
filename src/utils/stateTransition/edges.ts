@@ -69,12 +69,15 @@ export function transitionsToEdges(
     nodes: AppNode[] = [],
     includeSelfTransitions = false
 ): Edge[] {
-    const filteredTransitions = transitions
-        .filter((transition) => transition.time_25 === 1)
-        .filter(
-            (transition) =>
-                includeSelfTransitions || transition.start_state_id !== transition.end_state_id
-        );
+    // Visibility is governed only by the self-transition toggle here (and, at a
+    // higher level, by the condition/Δ filter). time_25 / time_100 are domain
+    // attributes (the transition completes in 25 or 100 years) and must NOT
+    // affect whether an edge is drawn — previously a `time_25 === 1` gate hid
+    // every transition whose time_25 wasn't exactly 1.
+    const filteredTransitions = transitions.filter(
+        (transition) =>
+            includeSelfTransitions || transition.start_state_id !== transition.end_state_id
+    );
 
     const connectionPairs = new Map<string, number>();
     const processedConnections = new Map<string, boolean>();

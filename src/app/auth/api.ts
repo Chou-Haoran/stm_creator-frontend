@@ -31,6 +31,8 @@ function __pickApiBase(): string {
 
 export const API_BASE = __pickApiBase();
 
+console.log('[api] using base:', API_BASE);
+
 export class ApiError extends Error {
   constructor(public readonly code: string, message: string) {
     super(message);

@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction } from 'react';
 
 import { AppNode } from '../../nodes/types';
-import { statesToNodes, BMRGData } from '../../utils/stateTransition';
+import { statesToNodes, ModelData } from '../../utils/stateTransition';
 import {
     loadVersions,
     saveVersion as persistVersion,
@@ -10,12 +10,12 @@ import {
 import { GraphModelVersion } from '../types';
 
 interface Dependencies {
-    getData: () => BMRGData | null;
-    setData: Dispatch<SetStateAction<BMRGData | null>>;
+    getData: () => ModelData | null;
+    setData: Dispatch<SetStateAction<ModelData | null>>;
     setNodes: Dispatch<SetStateAction<AppNode[]>>;
     handleNodeLabelChange: (id: string, label: string) => void;
     handleNodeClick: (id: string) => void;
-    rebuildEdges: (options?: { transitions?: BMRGData['transitions']; dataOverride?: BMRGData | null }) => void;
+    rebuildEdges: (options?: { transitions?: ModelData['transitions']; dataOverride?: ModelData | null }) => void;
     getVersions: () => GraphModelVersion[];
     setVersions: Dispatch<SetStateAction<GraphModelVersion[]>>;
     setIsVersionModalOpen: Dispatch<SetStateAction<boolean>>;
@@ -25,8 +25,8 @@ interface SaveVersionOptions {
     openManager?: boolean;
 }
 
-function cloneData(data: BMRGData): BMRGData {
-    return JSON.parse(JSON.stringify(data)) as BMRGData;
+function cloneData(data: ModelData): ModelData {
+    return JSON.parse(JSON.stringify(data)) as ModelData;
 }
 
 function createVersionName(timestamp: Date, existing: GraphModelVersion[]): string {
@@ -62,7 +62,7 @@ export function createVersionActions({
     const closeVersionManager = () => setIsVersionModalOpen(false);
 
     const saveVersionSnapshot = (
-        data: BMRGData,
+        data: ModelData,
         customName?: string,
         options: SaveVersionOptions = {},
     ) => {

@@ -9,7 +9,7 @@ import {
 
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode } from '../../nodes/types';
-import { BMRGData, TransitionData } from '../../utils/stateTransition';
+import { ModelData, TransitionData } from '../../utils/stateTransition';
 import { DeltaFilterOption, GraphModelVersion } from '../types';
 
 export interface GraphBaseState {
@@ -38,8 +38,8 @@ export interface GraphBaseState {
     setInitialNodeValues: React.Dispatch<React.SetStateAction<NodeAttributes | undefined>>;
     currentTransition: TransitionData | null;
     setCurrentTransition: React.Dispatch<React.SetStateAction<TransitionData | null>>;
-    bmrgData: BMRGData | null;
-    setBmrgData: React.Dispatch<React.SetStateAction<BMRGData | null>>;
+    modelData: ModelData | null;
+    setBmrgData: React.Dispatch<React.SetStateAction<ModelData | null>>;
     isLoading: boolean;
     setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
     error: string | null;
@@ -70,7 +70,7 @@ export function useGraphBaseState(): GraphBaseState {
     );
     const [currentTransition, setCurrentTransition] = useState<TransitionData | null>(null);
 
-    const [bmrgData, setBmrgData] = useState<BMRGData | null>(null);
+    const [modelData, setModelData] = useState<ModelData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -103,8 +103,8 @@ export function useGraphBaseState(): GraphBaseState {
         setInitialNodeValues,
         currentTransition,
         setCurrentTransition,
-        bmrgData,
-        setBmrgData,
+        modelData: modelData,
+        setBmrgData: setModelData,
         isLoading,
         setIsLoading,
         error,

@@ -1,5 +1,5 @@
 import {
-  BMRGData,
+  ModelData,
   TransitionData,
   StateData,
   hasFrontendStateId,
@@ -26,9 +26,9 @@ function getModelName(): string | undefined {
 }
 
 // Create an empty model for new projects
-function createEmptyModel(modelName?: string): BMRGData {
+function createEmptyModel(modelName?: string): ModelData {
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  
+
   return {
     stm_name: modelName || 'New Model - 1',
     version: '1.0',
@@ -51,35 +51,35 @@ function createEmptyModel(modelName?: string): BMRGData {
 }
 
 // Load from backend, fallback to empty model if not found
-export async function loadBMRGData(): Promise<BMRGData> {
+export async function loadModelData(): Promise<ModelData> {
   const modelName = getModelName();
-  
+
   // If no model name specified, create a new empty model
   if (!modelName) {
     return createEmptyModel();
   }
-  
+
   try {
     const res = await apiFetch(`${API_BASE}/models/${encodeURIComponent(modelName)}`, {
       headers: { Accept: 'application/json' },
     });
-    
+
     if (res.status === 401 || res.status === 403) {
       throw new Error('Unauthorized to load model. Please sign in.');
     }
-    
+
     if (res.status === 404) {
       // Model not found - create empty model with the requested name instead of throwing error
       console.log(`Model "${modelName}" not found, creating empty model with name "${modelName}"`);
       return createEmptyModel(modelName);
     }
-    
+
     if (!res.ok) {
       const msg = await safeError(res);
       throw new Error(msg || `Backend load failed (${res.status})`);
     }
-    
-    const data = (await res.json()) as BMRGData;
+
+    const data = (await res.json()) as ModelData;
     try {
       localStorage.setItem('stmCreator.lastModelName', modelName);
     } catch {}
@@ -92,7 +92,7 @@ export async function loadBMRGData(): Promise<BMRGData> {
 }
 
 // Save the updated BMRG data back to the server
-export async function saveBMRGData(data: BMRGData): Promise<boolean> {
+export async function saveModelData(data: ModelData): Promise<boolean> {
   const payload = prepareSavePayload(data);
   const res = await apiFetch(`${API_BASE}/models/save`, {
     method: 'POST',
@@ -117,7 +117,7 @@ export async function saveBMRGData(data: BMRGData): Promise<boolean> {
   return true;
 }
 
-export function prepareSavePayload(data: BMRGData): BMRGData {
+export function prepareSavePayload(data: ModelData): ModelData {
   const states: StateData[] = data.states.map((state) => {
     const cleaned: StateData = { ...state };
 
@@ -166,7 +166,7 @@ async function safeError(res: Response): Promise<string | undefined> {
   }
 }
 
-export function updateTransition(data: BMRGData, updatedTransition: TransitionData): BMRGData {
+export function updateTransition(data: ModelData, updatedTransition: TransitionData): ModelData {
   return {
     ...data,
     transitions: data.transitions.map((transition) =>

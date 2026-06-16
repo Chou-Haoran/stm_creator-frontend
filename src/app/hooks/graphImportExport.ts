@@ -1,21 +1,21 @@
 import { Dispatch, SetStateAction } from 'react';
 
 import { AppNode } from '../../nodes/types';
-import { BMRGData } from '../../utils/stateTransition';
+import { ModelData } from '../../utils/stateTransition';
 import { fromEKSModel, toEKSModel, EKSModel } from '../../utils/eksJson';
 
 interface Dependencies {
-    getData: () => BMRGData | null;
-    setData: Dispatch<SetStateAction<BMRGData | null>>;
+    getData: () => ModelData | null;
+    setData: Dispatch<SetStateAction<ModelData | null>>;
     setNodes: Dispatch<SetStateAction<AppNode[]>>;
-    rebuildEdges: (options?: { transitions?: BMRGData['transitions']; dataOverride?: BMRGData | null }) => void;
+    rebuildEdges: (options?: { transitions?: ModelData['transitions']; dataOverride?: ModelData | null }) => void;
     handleNodeLabelChange: (id: string, label: string) => void;
     handleNodeClick: (id: string) => void;
     statesToNodes: (
-        states: BMRGData['states'],
+        states: ModelData['states'],
         onLabelChange: (id: string, newLabel: string) => void,
         onNodeClick: (id: string) => void,
-        transitions: BMRGData['transitions'],
+        transitions: ModelData['transitions'],
     ) => AppNode[];
 }
 
@@ -57,16 +57,16 @@ export function createImportExportActions({
         try {
             const text = await file.text();
             const parsed = JSON.parse(text) as EKSModel;
-            const bmrgData = fromEKSModel(parsed);
-            setData(bmrgData);
+            const modelData = fromEKSModel(parsed);
+            setData(modelData);
             const nodes = statesToNodes(
-                bmrgData.states,
+                modelData.states,
                 handleNodeLabelChange,
                 handleNodeClick,
-                bmrgData.transitions,
+                modelData.transitions,
             );
             setNodes(nodes);
-            rebuildEdges({ transitions: bmrgData.transitions, dataOverride: bmrgData });
+            rebuildEdges({ transitions: modelData.transitions, dataOverride: modelData });
         } catch (error) {
             console.error('Failed to import EKS JSON', error);
             const message =

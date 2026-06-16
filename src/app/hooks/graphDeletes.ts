@@ -1,12 +1,12 @@
 import { Dispatch, SetStateAction } from 'react';
-import { BMRGData, TransitionData, statesToNodes } from '../../utils/stateTransition';
+import { ModelData, TransitionData, statesToNodes } from '../../utils/stateTransition';
 import { deleteModel as apiDeleteModel, deleteState as apiDeleteState, deleteTransition as apiDeleteTransition } from '../api/models';
 
 type Deps = {
-  getData: () => BMRGData | null;
-  setData: Dispatch<SetStateAction<BMRGData | null>>;
+  getData: () => ModelData | null;
+  setData: Dispatch<SetStateAction<ModelData | null>>;
   setNodes: Dispatch<SetStateAction<any[]>>; // AppNode[] but avoid import cycle
-  rebuildEdges: (options?: { transitions?: TransitionData[]; dataOverride?: BMRGData | null }) => void;
+  rebuildEdges: (options?: { transitions?: TransitionData[]; dataOverride?: ModelData | null }) => void;
   handleNodeLabelChange: (id: string, label: string) => void;
   handleNodeClick: (id: string) => void;
 };
@@ -15,7 +15,7 @@ export function createDeleteActions({ getData, setData, setNodes, rebuildEdges, 
   const removeTransitionLocal = (tId: number) => {
     setData(prev => {
       if (!prev) return prev;
-      const next: BMRGData = { ...prev, transitions: prev.transitions.filter(t => t.transition_id !== tId) };
+      const next: ModelData = { ...prev, transitions: prev.transitions.filter(t => t.transition_id !== tId) };
       rebuildEdges({ transitions: next.transitions, dataOverride: next });
       return next;
     });
@@ -63,7 +63,7 @@ export function createDeleteActions({ getData, setData, setNodes, rebuildEdges, 
       if (!prev) return prev;
       const remainingStates = prev.states.filter(s => (s.state_id ?? s.frontend_state_id) !== graphStateId);
       const remainingTransitions = prev.transitions.filter(t => t.start_state_id !== graphStateId && t.end_state_id !== graphStateId);
-      const next: BMRGData = { ...prev, states: remainingStates, transitions: remainingTransitions };
+      const next: ModelData = { ...prev, states: remainingStates, transitions: remainingTransitions };
       const nodes = statesToNodes(next.states, handleNodeLabelChange, handleNodeClick, next.transitions);
       setNodes(nodes);
       rebuildEdges({ transitions: remainingTransitions, dataOverride: next });

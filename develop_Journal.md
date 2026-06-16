@@ -647,7 +647,7 @@ Risk control:
 - No changes to IDs, node lookup, edge rebuild, modal opening, or state update flow.
 - Only the initial `transition_delta` assignment changed.
 
-#### 3) `src/app/hooks/edgeHandlers.ts`
+#### 3) `src/app/hooks/edgeHandlers_dead.ts`
 Updated the alternate transition creation path so it uses the same computed delta as the hook-based creator.
 
 What changed:

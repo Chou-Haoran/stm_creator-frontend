@@ -2,17 +2,17 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Edge, EdgeChange, EdgeMouseHandler, applyEdgeChanges } from '@xyflow/react';
 
-import { TransitionData, BMRGData, calcTransitionDelta } from '../../utils/stateTransition';
+import { TransitionData, ModelData, calcTransitionDelta } from '../../utils/stateTransition';
 import { updateTransition } from '../../utils/dataLoader';
 import { parseStateId, nextId, findStateByGraphId, getGraphStateId } from './graph-utils';
 
 interface BaseDeps {
-    getData: () => BMRGData | null;
-    setData: Dispatch<SetStateAction<BMRGData | null>>;
+    getData: () => ModelData | null;
+    setData: Dispatch<SetStateAction<ModelData | null>>;
 }
 
 interface TransitionCreatorDeps extends BaseDeps {
-    rebuildEdges: (options?: { transitions?: TransitionData[]; dataOverride?: BMRGData | null }) => void;
+    rebuildEdges: (options?: { transitions?: TransitionData[]; dataOverride?: ModelData | null }) => void;
     setCurrentTransition: Dispatch<SetStateAction<TransitionData | null>>;
     openTransitionModal: () => void;
 }
@@ -59,10 +59,15 @@ export function createTransitionCreator({
                 likelihood_100: 0,
                 notes: '',
                 causal_chain: [],
-                transition_delta: calcTransitionDelta(1, 0, 1, 0) ?? 0,
+                transition_delta: calcTransitionDelta(
+                    sourceState.condition_lower,
+                    sourceState.condition_upper,
+                    targetState.condition_lower,
+                    targetState.condition_upper,
+                ) ?? 0,
             };
 
-            const nextData: BMRGData = {
+            const nextData: ModelData = {
                 ...prevData,
                 transitions: [...prevData.transitions, transition],
             };
@@ -92,6 +97,7 @@ export function createEdgeHandlers({
     setCurrentTransition,
 }: EdgeHandlersDeps) {
     const handleEdgesChange = (changes: EdgeChange[]) => {
+        console.log('[handleEdgesChange] changes:', changes);
         setEdges((currentEdges) => {
             const updatedEdges = applyEdgeChanges(changes, currentEdges);
             const data = getData();
@@ -107,8 +113,20 @@ export function createEdgeHandlers({
                 const edgeId = change.id;
                 const nextEdge = updatedEdges.find((edge) => edge.id === edgeId);
                 const previousEdge = currentEdges.find((edge) => edge.id === edgeId);
+                console.log('[handleEdgesChange] processing deselect for edge:', change.id, {
+                    previousSelected: previousEdge?.selected,
+                    source: previousEdge?.source,
+                    target: previousEdge?.target,
+                    sourceHandle: previousEdge?.sourceHandle,
+                    targetHandle: previousEdge?.targetHandle,
+                });
 
                 if (!nextEdge || !previousEdge) {
+                    continue;
+                }
+
+                // Only care about deselects on edges that were previously selected
+                if (!previousEdge.selected) {
                     continue;
                 }
 
@@ -177,6 +195,8 @@ export function createEdgeHandlers({
     };
 
     const handleSaveTransition = (transition: TransitionData) => {
+        console.log('[handleSaveTransition] called with:', transition.transition_id);
+
         setData((prev) => (prev ? updateTransition(prev, transition) : prev));
         setEdges((prev) =>
             prev.map((edge) =>

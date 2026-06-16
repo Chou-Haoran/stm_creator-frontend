@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-import { BMRGData } from '../../utils/stateTransition';
+import { ModelData } from '../../utils/stateTransition';
 import type { SaveModelResponse } from '../hooks/graphModel';
 import type { LayoutStrategy } from '../../utils/layoutStrategies';
 import type { GlobalRole, ModelRole } from '../../constants/roles';
@@ -29,7 +29,7 @@ interface GraphToolbarProps {
   readonly edgeCreationMode: boolean;
   readonly isSaving: boolean;
   readonly showSelfTransitions: boolean;
-  readonly bmrgData: BMRGData | null;
+  readonly modelData: ModelData | null;
   readonly onOpenHelp: () => void;
   /** Toggle the right-side comment panel */
   readonly onToggleComments?: () => void;

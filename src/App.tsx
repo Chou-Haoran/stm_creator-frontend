@@ -273,7 +273,7 @@ function GraphEditor() {
     nodeTypes,
     customEdgeTypes,
     defaultEdgeOptions,
-    bmrgData,
+    modelData,
     isLoading,
     error,
     isSaving,
@@ -330,7 +330,7 @@ function GraphEditor() {
     nodeLocks,
   });
 
-  const modelName = bmrgData?.stm_name?.trim() || null;
+  const modelName = modelData?.stm_name?.trim() || null;
 
   const applyModelLock = (lock: ModelLockInfo) => {
     setModelLockId(lock.lockId ?? null);
@@ -352,8 +352,8 @@ function GraphEditor() {
       return;
     }
 
-    if (isModelRole(bmrgData?.model_role)) {
-      setCurrentModelRole(bmrgData.model_role);
+    if (isModelRole(modelData?.model_role)) {
+      setCurrentModelRole(modelData.model_role);
       return;
     }
 
@@ -370,7 +370,7 @@ function GraphEditor() {
     };
     void run();
     return () => { cancelled = true; };
-  }, [auth?.token, bmrgData?.model_role, modelName]);
+  }, [auth?.token, modelData?.model_role, modelName]);
 
   useEffect(() => {
     if (!auth?.token || !modelName) {
@@ -486,9 +486,9 @@ function GraphEditor() {
     } else if (
       contextMenu.target === 'transition' &&
       typeof contextMenu.transitionId === 'number' &&
-      bmrgData
+      modelData
     ) {
-      const transition = bmrgData.transitions.find(
+      const transition = modelData.transitions.find(
         (t) => t.transition_id === contextMenu.transitionId,
       );
       if (transition) {
@@ -625,7 +625,7 @@ function GraphEditor() {
   }));
 
   const driverOptions = useMemo<Driver[]>(() => {
-    const drivers = bmrgData?.transitions.flatMap((transition) =>
+    const drivers = modelData?.transitions.flatMap((transition) =>
       (transition.causal_chain ?? []).flatMap((part: unknown) => {
         const maybePart = part as { drivers?: unknown };
         return Array.isArray(maybePart.drivers) ? maybePart.drivers : [];
@@ -645,7 +645,7 @@ function GraphEditor() {
       seen.add(key);
       return true;
     });
-  }, [bmrgData]);
+  }, [modelData]);
 
   // ---- Save validation: state id must be unique ----
   const validateUniqueStateIds = () => {
@@ -929,11 +929,11 @@ function GraphEditor() {
   if (error) return <ErrorState message={error} onRetry={() => globalThis.location.reload()} />;
 
   const plausibleTransitionCount =
-    bmrgData ? bmrgData.transitions.filter((t) => t.time_25 === 1).length : 0;
+    modelData ? modelData.transitions.filter((t) => t.time_25 === 1).length : 0;
 
   const classCountMap: Record<string, number> = {};
-  if (bmrgData) {
-    for (const s of bmrgData.states) {
+  if (modelData) {
+    for (const s of modelData.states) {
       const cls = s.vast_state?.vast_class || 'Unknown';
       classCountMap[cls] = (classCountMap[cls] || 0) + 1;
     }
@@ -995,7 +995,7 @@ function GraphEditor() {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filenameBase = bmrgData?.stm_name?.trim() || 'stm-canvas';
+    const filenameBase = modelData?.stm_name?.trim() || 'stm-canvas';
     const backgroundColor = getComputedStyle(canvasArea).backgroundColor;
 
     try {
@@ -1054,7 +1054,7 @@ function GraphEditor() {
           edgeCreationMode={edgeCreationMode}
           isSaving={isSaving}
           showSelfTransitions={showSelfTransitions}
-          bmrgData={bmrgData}
+          modelData={modelData}
           onOpenHelp={() => setIsHelpOpen(true)}
           onToggleComments={() => setCommentsOpen(prev => !prev)}
           onOpenModelPermissions={() => setIsModelPermissionsOpen(true)}
@@ -1083,16 +1083,16 @@ function GraphEditor() {
       </div>
 
       <div className="header-bar">
-        <div className="model-name">{bmrgData?.stm_name || 'STM Creator'}</div>
-        {bmrgData && (
+        <div className="model-name">{modelData?.stm_name || 'STM Creator'}</div>
+        {modelData && (
           <>
             <div className="meta-pill">
               <span className="dot dot-green"></span>
-              {bmrgData.states.length} states
+              {modelData.states.length} states
             </div>
             <div className="meta-pill">
               <span className="dot dot-amber"></span>
-              {plausibleTransitionCount} / {bmrgData.transitions.length} transitions
+              {plausibleTransitionCount} / {modelData.transitions.length} transitions
             </div>
           </>
         )}
@@ -1207,7 +1207,7 @@ function GraphEditor() {
           <div className="sidebar-divider" />
 
           <TransitionFilterPanel
-            bmrgData={bmrgData}
+            modelData={modelData}
             showSelfTransitions={showSelfTransitions}
             deltaFilter={deltaFilter}
             onToggleSelfTransitions={toggleSelfTransitions}
@@ -1290,10 +1290,10 @@ function GraphEditor() {
             })}
           </div>
 
-          {bmrgData && (
+          {modelData && (
             <div className="statusbar">
               <div className="statusbar-dot" />
-              <span>nodes</span> <b>{bmrgData.states.length}</b>
+              <span>nodes</span> <b>{modelData.states.length}</b>
               <span>transitions</span> <b>{plausibleTransitionCount}</b>
             </div>
           )}
@@ -1395,7 +1395,7 @@ function GraphEditor() {
       <VersionComparisonModal
         isOpen={isVersionComparisonOpen}
         versions={versions}
-        currentData={bmrgData}
+        currentData={modelData}
         onClose={() => setIsVersionComparisonOpen(false)}
       />
       <ModelListModal

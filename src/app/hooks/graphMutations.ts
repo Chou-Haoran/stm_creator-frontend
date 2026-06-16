@@ -3,7 +3,7 @@ import { Edge } from '@xyflow/react';
 
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode, CustomNodeData } from '../../nodes/types';
-import { BMRGData, StateData, TransitionData, getGraphStateId } from '../../utils/stateTransition';
+import { ModelData, StateData, TransitionData, getGraphStateId } from '../../utils/stateTransition';
 
 export function updateNodeLabel(nodes: AppNode[], nodeId: string, newLabel: string): AppNode[] {
     return nodes.map((node) => {
@@ -215,10 +215,10 @@ export function createCustomNode(
 }
 
 export function updateBmrgStateName(
-    data: BMRGData,
+    data: ModelData,
     stateId: number,
     attributes: NodeAttributes,
-): BMRGData {
+): ModelData {
     const imageUrls = normaliseImageUrls(attributes);
     const bounds = parseConditionBounds(attributes.condition);
     const lower = Number.parseFloat(bounds.lower);
@@ -257,11 +257,11 @@ export function updateBmrgStateName(
 }
 
 export function applyBmrgNodePatch(
-    data: BMRGData,
+    data: ModelData,
     stateId: number,
     field: string,
     value: unknown,
-): BMRGData {
+): ModelData {
     const states = data.states.map((state) => {
         if (getGraphStateId(state) !== stateId) {
             return state;
@@ -358,14 +358,14 @@ export function buildStateFromAttributes(
         attributes: Object.keys(stateAttributes).length > 0 ? stateAttributes : null,
     };
 }
-export function addStateToBmrg(data: BMRGData, state: StateData): BMRGData {
+export function addStateToBmrg(data: ModelData, state: StateData): ModelData {
     return {
         ...data,
         states: [...data.states, state],
     };
 }
 
-export function buildStateNameMap(data: BMRGData | null): Record<number, string> {
+export function buildStateNameMap(data: ModelData | null): Record<number, string> {
     if (!data) {
         return {};
     }

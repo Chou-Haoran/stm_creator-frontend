@@ -1,5 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
-import type { StateData, TransitionData, BMRGData } from './stateTransition/types';
+import type { StateData, TransitionData, ModelData } from './stateTransition/types';
 import { getGraphStateId } from './stateTransition';
 import { optimizeNodeLayout } from './stateTransition/layout';
 
@@ -57,7 +57,7 @@ async function elkPositions(algorithm: 'layered' | 'force', states: StateData[],
   return positions;
 }
 
-export async function computeLayoutPositions(strategy: LayoutStrategy, data: BMRGData): Promise<Map<number, Position>> {
+export async function computeLayoutPositions(strategy: LayoutStrategy, data: ModelData): Promise<Map<number, Position>> {
   const { states, transitions } = data;
   if (strategy === 'grid') return gridPositions(states);
   if (strategy === 'layered') return elkPositions('layered', states, transitions);

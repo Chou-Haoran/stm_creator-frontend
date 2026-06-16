@@ -2,12 +2,12 @@
 import { Edge } from '@xyflow/react';
 
 import { AppNode } from '../../nodes/types';
-import { TransitionData, BMRGData, transitionsToEdges } from '../../utils/stateTransition';
+import { TransitionData, ModelData, transitionsToEdges } from '../../utils/stateTransition';
 import { DeltaFilterOption } from '../types';
 import { filterEdgesByDelta } from './graph-utils';
 
 interface Dependencies {
-    getData: () => BMRGData | null;
+    getData: () => ModelData | null;
     getNodes: () => AppNode[];
     getIncludeSelfTransitions: () => boolean;
     getDeltaFilter: () => DeltaFilterOption;
@@ -18,22 +18,28 @@ interface Options {
     transitions?: TransitionData[];
     includeSelfTransitions?: boolean;
     filter?: DeltaFilterOption;
-    dataOverride?: BMRGData | null;
+    dataOverride?: ModelData | null;
+    // Lets callers pass freshly-built nodes when React state hasn't committed
+    // them yet (e.g. during initial load, right after setNodes). Without this,
+    // getNodes() would still return the previous (empty) nodes and edge handles
+    // would be computed against nothing.
+    nodes?: AppNode[];
 }
 
 export function createRebuildEdges({
-    getData,
-    getNodes,
-    getIncludeSelfTransitions,
-    getDeltaFilter,
-    setEdges,
-}: Dependencies) {
+                                       getData,
+                                       getNodes,
+                                       getIncludeSelfTransitions,
+                                       getDeltaFilter,
+                                       setEdges,
+                                   }: Dependencies) {
     return ({
-        transitions,
-        includeSelfTransitions,
-        filter,
-        dataOverride,
-    }: Options = {}) => {
+                transitions,
+                includeSelfTransitions,
+                filter,
+                dataOverride,
+                nodes,
+            }: Options = {}) => {
         const data = dataOverride ?? getData();
         if (!data) {
             return;
@@ -41,7 +47,7 @@ export function createRebuildEdges({
 
         const projectedEdges = transitionsToEdges(
             transitions ?? data.transitions,
-            getNodes(),
+            nodes ?? getNodes(),
             includeSelfTransitions ?? getIncludeSelfTransitions(),
         );
         const filteredEdges = filterEdgesByDelta(

@@ -1,21 +1,27 @@
 import { Dispatch, SetStateAction } from 'react';
 
-import { loadBMRGData, prepareSavePayload } from '../../utils/dataLoader';
-import { BMRGData, statesToNodes } from '../../utils/stateTransition';
+import { loadModelData, prepareSavePayload } from '../../utils/dataLoader';
+import {getGraphStateId, ModelData, statesToNodes} from '../../utils/stateTransition';
 import { API_BASE, apiFetch, authStorage } from '../auth/api';
 import { AppNode } from '../../nodes/types';
+import { parseStateId } from './graph-utils';
 
 interface ModelDeps {
-    getData: () => BMRGData | null;
+    getData: () => ModelData | null;
+    getNodes: () => AppNode[];
     setIsSaving: Dispatch<SetStateAction<boolean>>;
     setNodes: Dispatch<SetStateAction<AppNode[]>>;
     handleNodeLabelChange: (id: string, label: string) => void;
     handleNodeClick: (id: string) => void;
     setError: Dispatch<SetStateAction<string | null>>;
     setIsLoading: Dispatch<SetStateAction<boolean>>;
-    setData: Dispatch<SetStateAction<BMRGData | null>>;
-    onSaveSnapshot?: (data: BMRGData) => void;
+    setData: Dispatch<SetStateAction<ModelData | null>>;
+    // Rebuilds the edge set from the model's transitions. Accepts overrides so
+    // we can pass freshly-built data/nodes before React state has committed.
+    rebuildEdges: (options?: { dataOverride?: ModelData | null; nodes?: AppNode[] }) => void;
+    onSaveSnapshot?: (data: ModelData) => void;
 }
+
 
 export interface SaveModelResponse {
     success: boolean;
@@ -25,20 +31,22 @@ export interface SaveModelResponse {
 }
 
 export function createModelActions({
-    getData,
-    setIsSaving,
-    setNodes,
-    handleNodeLabelChange,
-    handleNodeClick,
-    setError,
-    setIsLoading,
-    setData,
-    onSaveSnapshot,
-}: ModelDeps) {
+                                       getData,
+                                       getNodes,
+                                       setIsSaving,
+                                       setNodes,
+                                       handleNodeLabelChange,
+                                       handleNodeClick,
+                                       setError,
+                                       setIsLoading,
+                                       setData,
+                                       rebuildEdges,
+                                       onSaveSnapshot,
+                                   }: ModelDeps) {
     const initialise = async () => {
         try {
             setIsLoading(true);
-            const data = await loadBMRGData();
+            const data = await loadModelData();
             setData(data);
             const initialNodes = statesToNodes(
                 data.states,
@@ -47,6 +55,11 @@ export function createModelActions({
                 data.transitions,
             );
             setNodes(initialNodes);
+            // Build the edges too. statesToNodes only produces nodes, so without
+            // this the canvas loads with zero transitions until the user toggles
+            // a filter / presses Clear. Pass the freshly built nodes explicitly
+            // because setNodes above hasn't committed to state yet.
+            rebuildEdges({ dataOverride: data, nodes: initialNodes });
             setIsLoading(false);
         } catch (err) {
             // This should rarely happen now since loadBMRGData falls back to empty model
@@ -54,6 +67,28 @@ export function createModelActions({
             setError('Failed to load state transition data. Please check the console for details.');
             setIsLoading(false);
         }
+    };
+
+    // Fold the current on-canvas node positions into the model's states as
+    // node_x / node_y. ReactFlow's `nodes` state is the source of truth for
+    // where states sit (drag updates it via onNodesChange), so we read from
+    // there at save time rather than relying on bmrgData being kept in sync.
+    const withCurrentPositions = (data: ModelData): ModelData => {
+        const positionByGraphId = new Map<number, { x: number; y: number }>();
+        for (const node of getNodes()) {
+            const graphId = parseStateId(node.id);
+            if (graphId !== null && node.position) {
+                positionByGraphId.set(graphId, { x: node.position.x, y: node.position.y });
+            }
+        }
+
+        return {
+            ...data,
+            states: data.states.map((state) => {
+                const pos = positionByGraphId.get(getGraphStateId(state));
+                return pos ? { ...state, node_x: pos.x, node_y: pos.y } : state;
+            }),
+        };
     };
 
     const handleSaveModel = async (): Promise<SaveModelResponse> => {
@@ -72,7 +107,7 @@ export function createModelActions({
         setIsSaving(true);
 
         try {
-            const payload = prepareSavePayload(data);
+            const payload = prepareSavePayload(withCurrentPositions(data));
             const response = await apiFetch(`${API_BASE}/models/save`, {
                 method: 'POST',
                 headers: {
@@ -109,7 +144,7 @@ export function createModelActions({
 
             // Refresh data after successful save to ensure consistency
             try {
-                const refreshed = await loadBMRGData();
+                const refreshed = await loadModelData();
                 snapshotData = refreshed;
                 setData(refreshed);
                 const nodes = statesToNodes(
@@ -119,6 +154,9 @@ export function createModelActions({
                     refreshed.transitions,
                 );
                 setNodes(nodes);
+                // Keep edges in sync with the refreshed model (matters when the
+                // redirect below is skipped because stm_name is absent).
+                rebuildEdges({ dataOverride: refreshed, nodes });
             } catch (error_) {
                 console.warn('Model saved but failed to refresh latest data', error_);
             }

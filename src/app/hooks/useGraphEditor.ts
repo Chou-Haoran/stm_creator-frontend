@@ -51,7 +51,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     };
 
     const rebuildEdges = createRebuildEdges({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         getNodes: () => state.nodes,
         getIncludeSelfTransitions: () => state.showSelfTransitions,
         getDeltaFilter: () => state.deltaFilter,
@@ -62,7 +62,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     const closeTransitionModal = () => state.setIsTransitionModalOpen(false);
 
     const createTransition = createTransitionCreator({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         rebuildEdges,
         setCurrentTransition: state.setCurrentTransition,
@@ -70,7 +70,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     const edgeHandlers = createEdgeHandlers({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         setEdges: state.setEdges,
         createTransition,
@@ -92,7 +92,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         setIsNodeModalOpen: state.setIsNodeModalOpen,
         getIsEditing: () => state.isEditing,
         getCurrentNodeId: () => state.currentNodeId,
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         handleNodeLabelChange,
         requestNodeEdit: options.requestNodeEdit,
@@ -105,7 +105,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     const versionActions = createVersionActions({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         setNodes: state.setNodes,
         handleNodeLabelChange,
@@ -117,7 +117,8 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     const modelActions = createModelActions({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
+        getNodes: () => state.nodes,        // ← add this line
         setIsSaving: state.setIsSaving,
         setNodes: state.setNodes,
         handleNodeLabelChange,
@@ -125,13 +126,14 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         setError: state.setError,
         setIsLoading: state.setIsLoading,
         setData: state.setBmrgData,
+        rebuildEdges,                       // ← from the earlier edge-load fix
         onSaveSnapshot: (data) => {
             versionActions.saveVersionSnapshot(data, undefined, { openManager: false });
         },
     });
 
     const deleteActions = createDeleteActions({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         setNodes: state.setNodes,
         rebuildEdges,
@@ -140,7 +142,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     const importExportActions = createImportExportActions({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setData: state.setBmrgData,
         setNodes: state.setNodes,
         rebuildEdges,
@@ -150,7 +152,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     });
 
     const layoutActions = createLayoutActions({
-        getData: () => state.bmrgData,
+        getData: () => state.modelData,
         setNodes: state.setNodes,
         setData: state.setBmrgData,
     });
@@ -179,7 +181,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         },
     }));
 
-    const stateNameMap = buildStateNameMap(state.bmrgData);
+    const stateNameMap = buildStateNameMap(state.modelData);
 
     const onConnect: OnConnect = (connection: Connection) => {
         if (blockIfReadOnly()) {
@@ -202,6 +204,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
     };
 
     const handleSaveTransition = (transition: TransitionData) => {
+        console.log('[useGraphEditor handleSaveTransition] called');
         if (blockIfReadOnly()) {
             return;
         }
@@ -225,7 +228,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
         nodeTypes: EXTENDED_NODE_TYPES,
         customEdgeTypes: EXTENDED_EDGE_TYPES,
         defaultEdgeOptions: DEFAULT_EDGE_OPTIONS,
-        bmrgData: state.bmrgData,
+        modelData: state.modelData,
         isLoading: state.isLoading,
         error: state.error,
         isSaving: state.isSaving,
@@ -299,7 +302,7 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
             if (blockIfReadOnly()) {
                 return;
             }
-            const data = state.bmrgData;
+            const data = state.modelData;
             if (!data) {
                 return;
             }

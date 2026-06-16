@@ -102,7 +102,21 @@ function normaliseImageUrls(attributes: any): string[] {
     return typeof attributes.imageUrl === 'string' && attributes.imageUrl.trim() !== '' ? [attributes.imageUrl] : [];
 }
 
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
 function getStoredPosition(state: StateData): { x: number; y: number } | null {
+    // 1) Authoritative persisted position from the DB (node_x / node_y).
+    //    Honour these even when they are 0 — a legitimately saved (0,0) is still
+    //    a real position. Only NULL/undefined (no saved position) falls through.
+    const nx = state.node_x;
+    const ny = state.node_y;
+    if (isFiniteNumber(nx) && isFiniteNumber(ny)) {
+        return { x: nx, y: ny };
+    }
+
+    // 2) Legacy / in-memory fallbacks (attributes.position, position, x/y).
     const position =
         state.attributes?.position ??
         (state as any).position ??
@@ -114,10 +128,11 @@ function getStoredPosition(state: StateData): { x: number; y: number } | null {
     }
 
     const { x, y } = position as { x?: unknown; y?: unknown };
-    if (typeof x !== 'number' || !Number.isFinite(x) || typeof y !== 'number' || !Number.isFinite(y)) {
+    if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
         return null;
     }
 
+    // For these legacy sources, treat (0,0) as "unset" and fall back to layout.
     if (x === 0 && y === 0) {
         return null;
     }

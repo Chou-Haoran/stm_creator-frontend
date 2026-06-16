@@ -110,7 +110,7 @@ function ensureSocket(token: string): CollabSocket {
 
   socket = io(getCollabUrl(), {
     autoConnect: false,
-    transports: ['websocket', 'polling'],
+    transports: [ 'polling','websocket'],
     auth: { token },
   });
   socketToken = token;
@@ -139,18 +139,15 @@ function joinCurrentModel(activeSocket: CollabSocket, modelName: string): void {
 export function connectCollabSocket(options: ConnectOptions): CollabSocket {
   const activeSocket = ensureSocket(options.token);
 
-  if (!activeSocket.connected) {
-    activeSocket.connect();
-  }
-
-  if (activeSocket.connected) {
-    joinCurrentModel(activeSocket, options.modelName);
-  } else {
-    activeSocket.off('connect', handleConnectJoin);
-    activeSocket.on('connect', handleConnectJoin);
-  }
-
   function handleConnectJoin() {
+    joinCurrentModel(activeSocket, options.modelName);
+  }
+
+  if (!activeSocket.connected) {
+    activeSocket.off('connect', handleConnectJoin); // still won't work with new refs
+    activeSocket.once('connect', handleConnectJoin); // ← use .once() instead
+    activeSocket.connect();
+  } else {
     joinCurrentModel(activeSocket, options.modelName);
   }
 

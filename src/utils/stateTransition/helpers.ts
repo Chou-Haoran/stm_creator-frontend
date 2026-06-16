@@ -37,25 +37,23 @@ export function collectAllStateIds(states: StateData[]): number[] {
 
 
 export function calcTransitionDelta(
-  likelihood25: number | null | undefined,
-  likelihood100: number | null | undefined,
-  time25: number | null | undefined,
-  time100: number | null | undefined,
+    startConditionLower: number | null | undefined,
+    startConditionUpper: number | null | undefined,
+    endConditionLower: number | null | undefined,
+    endConditionUpper: number | null | undefined,
 ): number | null {
   if (
-    likelihood25 == null ||
-    likelihood100 == null ||
-    time25 == null ||
-    time100 == null
+      startConditionLower == null ||
+      startConditionUpper == null ||
+      endConditionLower == null ||
+      endConditionUpper == null
   ) {
     return null;
   }
 
-  const denominator = time100 - time25;
-  if (denominator === 0) {
-    return null;
-  }
+  const startMidpoint = (startConditionUpper - startConditionLower) / 2;
+  const endMidpoint = (endConditionUpper - endConditionLower) / 2;
+  const delta = endMidpoint - startMidpoint;
 
-  const delta = (likelihood100 - likelihood25) / denominator;
   return Number.isFinite(delta) ? delta : null;
 }

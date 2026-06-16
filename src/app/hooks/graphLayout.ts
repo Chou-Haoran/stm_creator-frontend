@@ -1,13 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { AppNode } from '../../nodes/types';
-import type { BMRGData } from '../../utils/stateTransition/types';
+import type { ModelData } from '../../utils/stateTransition/types';
 import { getGraphStateId } from '../../utils/stateTransition';
 import { computeLayoutPositions, type LayoutStrategy } from '../../utils/layoutStrategies';
 
 interface Deps {
-  getData: () => BMRGData | null;
+  getData: () => ModelData | null;
   setNodes: Dispatch<SetStateAction<AppNode[]>>;
-  setData: Dispatch<SetStateAction<BMRGData | null>>;
+  setData: Dispatch<SetStateAction<ModelData | null>>;
 }
 
 function parseStateId(nodeId: string): number | null {

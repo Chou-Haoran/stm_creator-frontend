@@ -1,4 +1,4 @@
-import { BMRGData, StateData, TransitionData, getGraphStateId } from './stateTransition';
+import { ModelData, StateData, TransitionData, getGraphStateId } from './stateTransition';
 
 export interface EKSState {
     id: number;
@@ -28,7 +28,7 @@ export interface EKSModel {
     transitions: EKSTransition[];
 }
 
-export function toEKSModel(data: BMRGData): EKSModel {
+export function toEKSModel(data: ModelData): EKSModel {
     const states: EKSState[] = data.states.map((state) => ({
         id: getGraphStateId(state),
         name: state.state_name,
@@ -78,7 +78,7 @@ function createBaseState(id: number, name: string, lower: number, upper: number,
     };
 }
 
-export function fromEKSModel(model: EKSModel): BMRGData {
+export function fromEKSModel(model: EKSModel): ModelData {
     if (!Array.isArray(model.states) || !Array.isArray(model.transitions)) {
         throw new Error('EKS JSON must contain "states" and "transitions" arrays.');
     }

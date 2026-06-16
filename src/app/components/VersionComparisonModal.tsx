@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GraphModelVersion } from '../types';
-import { BMRGData, StateData, getGraphStateId } from '../../utils/stateTransition';
+import { ModelData, StateData, getGraphStateId } from '../../utils/stateTransition';
 import './VersionComparisonModal.css';
 
 interface VersionComparisonModalProps {
     isOpen: boolean;
     versions: GraphModelVersion[];
-    currentData: BMRGData | null;
+    currentData: ModelData | null;
     onClose: () => void;
 }
 
 interface ComparisonOption {
     id: string;
     label: string;
-    data: BMRGData;
+    data: ModelData;
 }
 
 interface PreviewNode {
@@ -135,7 +135,7 @@ export function VersionComparisonModal({
     );
 }
 
-function PreviewCanvas({ title, data }: { title: string; data: BMRGData }) {
+function PreviewCanvas({ title, data }: { title: string; data: ModelData }) {
     const nodes = buildPreviewNodes(data.states);
 
     return (
@@ -184,7 +184,7 @@ function buildPreviewNodes(states: StateData[]): PreviewNode[] {
     });
 }
 
-function compareModels(left: BMRGData, right: BMRGData): string[] {
+function compareModels(left: ModelData, right: ModelData): string[] {
     const diffs: string[] = [];
     const leftStates = stateMap(left.states);
     const rightStates = stateMap(right.states);
@@ -240,14 +240,14 @@ function stateMap(states: StateData[]): Map<number, StateData> {
     return new Map(states.map((state) => [getGraphStateId(state), state]));
 }
 
-function transitionMap(data: BMRGData) {
+function transitionMap(data: ModelData) {
     return new Map(data.transitions.map((transition) => [
         `${stateName(data, transition.start_state_id)} -> ${stateName(data, transition.end_state_id)}`,
         transition,
     ]));
 }
 
-function stateName(data: BMRGData, id: number): string {
+function stateName(data: ModelData, id: number): string {
     const state = data.states.find((item) => getGraphStateId(item) === id);
     return state ? `${state.state_name} (#${id})` : `State #${id}`;
 }

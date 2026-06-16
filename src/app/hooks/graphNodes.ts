@@ -3,7 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 
 import { AppNode } from '../../nodes/types';
 import { NodeAttributes } from '../../nodes/nodeModal';
-import { BMRGData } from '../../utils/stateTransition';
+import { ModelData } from '../../utils/stateTransition';
 import {
     addStateToBmrg,
     applyNodeAttributes,
@@ -31,8 +31,8 @@ interface Dependencies {
     setIsNodeModalOpen: Dispatch<SetStateAction<boolean>>;
     getIsEditing: () => boolean;
     getCurrentNodeId: () => string | null;
-    getData: () => BMRGData | null;
-    setData: Dispatch<SetStateAction<BMRGData | null>>;
+    getData: () => ModelData | null;
+    setData: Dispatch<SetStateAction<ModelData | null>>;
     handleNodeLabelChange: (nodeId: string, label: string) => void;
     requestNodeEdit?: (nodeId: string) => Promise<boolean>;
 }
@@ -172,7 +172,7 @@ export function createNodeHandlers({
         const copiedAttributes = cloneValue(sourceState.attributes ?? {}) as Record<string, unknown>;
         copiedAttributes.position = nextPosition;
 
-        const duplicatedState = cloneValue(sourceState) as BMRGData['states'][number];
+        const duplicatedState = cloneValue(sourceState) as ModelData['states'][number];
         delete duplicatedState.state_id;
         duplicatedState.frontend_state_id = nextStateId;
         duplicatedState.state_name = nextName;
@@ -244,7 +244,7 @@ export function createNodeHandlers({
     };
 }
 
-function getConditionString(state: BMRGData['states'][number]): string {
+function getConditionString(state: ModelData['states'][number]): string {
     if (state.condition_upper === -9999 || state.condition_lower === -9999) {
         return 'No condition data';
     }

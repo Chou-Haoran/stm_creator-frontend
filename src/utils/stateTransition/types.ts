@@ -18,6 +18,11 @@ export interface StateData {
     eks_condition_estimate: number;
     elicitation_type: string;
     attributes: any;
+    // Persisted canvas position (ReactFlow flow-coordinates). Returned by the
+    // backend on load and written back on save. Null/undefined means "no saved
+    // position yet" — the loader falls back to auto-layout in that case.
+    node_x?: number | null;
+    node_y?: number | null;
 }
 
 export interface TransitionData {
@@ -37,7 +42,7 @@ export interface TransitionData {
     transition_delta: number;
 }
 
-export interface BMRGData {
+export interface ModelData {
     id?: number;
     stm_name: string;
     version: string;

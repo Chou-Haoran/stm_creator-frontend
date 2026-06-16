@@ -11,7 +11,7 @@ import {
 
 import { NodeAttributes } from '../../nodes/nodeModal';
 import { AppNode } from '../../nodes/types';
-import { BMRGData, TransitionData } from '../../utils/stateTransition';
+import { ModelData, TransitionData } from '../../utils/stateTransition';
 import type { LayoutStrategy } from '../../utils/layoutStrategies';
 import { DeltaFilterOption, GraphModelVersion } from '../types';
 import type { SaveModelResponse } from './graphModel';
@@ -22,7 +22,7 @@ export interface UseGraphEditorResult {
     nodeTypes: NodeTypes;
     customEdgeTypes: EdgeTypes;
     defaultEdgeOptions: DefaultEdgeOptions;
-    bmrgData: BMRGData | null;
+    modelData: ModelData | null;
     isLoading: boolean;
     error: string | null;
     isSaving: boolean;
