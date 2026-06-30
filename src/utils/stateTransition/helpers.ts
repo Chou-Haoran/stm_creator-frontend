@@ -51,9 +51,15 @@ export function calcTransitionDelta(
     return null;
   }
 
-  const startMidpoint = (startConditionUpper - startConditionLower) / 2;
-  const endMidpoint = (endConditionUpper - endConditionLower) / 2;
+  const startMidpoint = (startConditionUpper + startConditionLower) / 2;
+  const endMidpoint = (endConditionUpper + endConditionLower) / 2;
   const delta = endMidpoint - startMidpoint;
 
-  return Number.isFinite(delta) ? delta : null;
+  if (!Number.isFinite(delta)) {
+    return null;
+  }
+
+  // Round to 2 decimal places to avoid floating-point display noise
+  // (e.g. -0.22499999999999998 -> -0.22).
+  return Math.round(delta * 100) / 100;
 }

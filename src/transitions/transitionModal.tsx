@@ -1,9 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { TransitionData, calcTransitionDelta } from '../utils/stateTransition';
+import React, { useEffect, useState } from 'react';
+import { TransitionData } from '../utils/stateTransition';
 import {
     CausalChainEditor,
-    DEFAULT_DRIVER_OPTIONS,
-    uniqueDrivers,
     type ChainPart,
     type Driver,
 } from './CausalChainEditor';
@@ -28,15 +26,9 @@ export function TransitionModal({
                                     onDelete,
                                     transition,
                                     stateNames,
-                                    driverOptions = [],
                                 }: TransitionModalProps) {
     const [transitionData, setTransitionData] = useState<TransitionData | null>(null);
     const [activeTab, setActiveTab] = useState<'basic' | 'causal-chain'>('basic');
-
-    const mergedDriverOptions = useMemo(
-        () => uniqueDrivers([...driverOptions, ...DEFAULT_DRIVER_OPTIONS]),
-        [driverOptions],
-    );
 
     useEffect(() => {
         if (transition) {
@@ -63,24 +55,11 @@ export function TransitionModal({
 
             const nextTransition = { ...prev, [name]: numericValue } as TransitionData;
 
-            if (
-                name === 'time_25' ||
-                name === 'time_100' ||
-                name === 'likelihood_25' ||
-                name === 'likelihood_100'
-            ) {
-                const computedDelta = calcTransitionDelta(
-                    nextTransition.likelihood_25,
-                    nextTransition.likelihood_100,
-                    nextTransition.time_25,
-                    nextTransition.time_100,
-                );
-                return {
-                    ...nextTransition,
-                    transition_delta: computedDelta ?? nextTransition.transition_delta,
-                };
-            }
-
+            // Do NOT recompute transition_delta from time/likelihood here. The
+            // delta is derived from the connected states' condition ranges at
+            // creation; editing a transition doesn't change those states, so the
+            // value must be preserved. (The manual transition_delta input still
+            // updates it directly via the spread above.)
             return nextTransition;
         });
     };
@@ -101,60 +80,6 @@ export function TransitionModal({
         onSave({
             ...transitionData,
             transition_delta: computedDelta ?? transitionData.transition_delta,
-        });
-    };
-
-    const handleRemoveDriver = (partIndex: number, driverToRemove: Driver) => {
-        setTransitionData((prev) => {
-            if (!prev) return prev;
-            const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
-                if (index !== partIndex) return part;
-                return {
-                    ...part,
-                    drivers: part.drivers.filter(
-                        (d) =>
-                            d.driver !== driverToRemove.driver ||
-                            d.driver_group !== driverToRemove.driver_group,
-                    ),
-                };
-            });
-            return { ...prev, causal_chain: nextChain };
-        });
-    };
-
-    const handleAddDriver = (partIndex: number, driverToAdd: Driver) => {
-        setTransitionData((prev) => {
-            if (!prev) return prev;
-            const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
-                if (index !== partIndex) return part;
-                const exists = part.drivers.some(
-                    (d) => d.driver === driverToAdd.driver && d.driver_group === driverToAdd.driver_group,
-                );
-                return exists ? part : { ...part, drivers: [...part.drivers, driverToAdd] };
-            });
-            return { ...prev, causal_chain: nextChain };
-        });
-    };
-
-    const handleAddChainPart = (name: string) => {
-        setTransitionData((prev) => {
-            if (!prev) return prev;
-            const nextChain = [
-                ...((prev.causal_chain ?? []) as ChainPart[]),
-                { chain_part: name, drivers: [], precondition: '' },
-            ];
-            return { ...prev, causal_chain: nextChain };
-        });
-    };
-
-    const handleUpdatePrecondition = (partIndex: number, value: string) => {
-        setTransitionData((prev) => {
-            if (!prev) return prev;
-            const nextChain = ((prev.causal_chain ?? []) as ChainPart[]).map((part, index) => {
-                if (index !== partIndex) return part;
-                return { ...part, precondition: value };
-            });
-            return { ...prev, causal_chain: nextChain };
         });
     };
 
@@ -295,12 +220,10 @@ export function TransitionModal({
                         </>
                     ) : (
                         <CausalChainEditor
-                            causalChain={causalChain}
-                            driverOptions={mergedDriverOptions}
-                            onRemoveDriver={handleRemoveDriver}
-                            onAddDriver={handleAddDriver}
-                            onAddChainPart={handleAddChainPart}
-                            onUpdatePrecondition={handleUpdatePrecondition}
+                            value={causalChain}
+                            onChange={(next) =>
+                                setTransitionData((prev) => (prev ? { ...prev, causal_chain: next } : prev))
+                            }
                         />
                     )}
 

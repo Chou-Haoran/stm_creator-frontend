@@ -15,6 +15,7 @@ interface MentionItem {
     type: 'node' | 'edge';
     id: string;
     label: string;
+    transitionId?: number;
 }
 
 interface CommentPanelProps {
@@ -32,8 +33,8 @@ interface CommentPanelProps {
     userRole?: GlobalRole | null;
     /** Available nodes: { id, label } */
     nodes: { id: string; label: string }[];
-    /** Available edges: { id, sourceLabel, targetLabel } */
-    edges: { id: string; sourceLabel: string; targetLabel: string }[];
+    /** Available edges: { id, sourceLabel, targetLabel, transitionId } */
+    edges: { id: string; sourceLabel: string; targetLabel: string; transitionId?: number }[];
     modelName: string;
 }
 
@@ -69,12 +70,23 @@ export function CommentPanel({
     // Build the mention list from nodes and edges
     const mentionItems = useMemo<MentionItem[]>(() => [
         ...nodes.map(n => ({ type: 'node' as const, id: n.id, label: n.label })),
-        ...edges.map(e => ({ type: 'edge' as const, id: e.id, label: `${e.sourceLabel} -> ${e.targetLabel}` })),
+        ...edges.map(e => ({ type: 'edge' as const, id: e.id, label: `${e.sourceLabel} -> ${e.targetLabel}`, transitionId: e.transitionId })),
     ], [nodes, edges]);
 
-    const filteredMentions = mentionItems.filter(m =>
-        m.label.toLowerCase().includes(mentionFilter.toLowerCase())
-    );
+    // Cap each type separately so edges are always reachable. A flat "first 8"
+    // list over [...nodes, ...edges] is all nodes in any model with 8+ states,
+    // which hides edges from the dropdown entirely.
+    const filteredMentions = useMemo<MentionItem[]>(() => {
+        const q = mentionFilter.trim().toLowerCase();
+        const matches = (items: MentionItem[]) =>
+            items.filter(m =>
+                m.label.toLowerCase().includes(q) ||
+                (m.transitionId != null && String(m.transitionId).includes(q)),
+            );
+        const nodeMatches = matches(mentionItems.filter(m => m.type === 'node')).slice(0, 6);
+        const edgeMatches = matches(mentionItems.filter(m => m.type === 'edge')).slice(0, 6);
+        return [...nodeMatches, ...edgeMatches];
+    }, [mentionItems, mentionFilter]);
 
     const handleTextChange = (value: string) => {
         setText(value);
@@ -209,7 +221,7 @@ export function CommentPanel({
                             const rect = textareaRef.current!.getBoundingClientRect();
                             return (
                                 <div style={{ ...mentionDropdown, top: rect.bottom + 4, left: rect.left }}>
-                                    {filteredMentions.slice(0, 8).map(item => (
+                                    {filteredMentions.map(item => (
                                         <button
                                             key={`${item.type}-${item.id}`}
                                             onClick={() => insertMention(item)}
@@ -220,6 +232,9 @@ export function CommentPanel({
                                             <span style={mentionBadge(item.type)}>
                                                 {item.type === 'node' ? 'N' : 'E'}
                                             </span>
+                                            {item.type === 'edge' && item.transitionId != null && (
+                                                <span style={idChipStyle}>#{item.transitionId}</span>
+                                            )}
                                             <span style={{ fontSize: 12 }}>{item.label}</span>
                                         </button>
                                     ))}
@@ -404,6 +419,20 @@ const mentionBadge = (type: 'node' | 'edge'): React.CSSProperties => ({
     background: type === 'node' ? '#10b981' : '#6366f1',
     flexShrink: 0,
 });
+
+const idChipStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '1px 5px',
+    borderRadius: 4,
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#3730a3',
+    background: '#e0e7ff',
+    border: '1px solid #c7d2fe',
+    flexShrink: 0,
+    fontFamily: 'monospace',
+};
 
 const submitBtn: React.CSSProperties = {
     padding: '6px 14px',

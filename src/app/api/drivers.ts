@@ -5,6 +5,7 @@ export interface DriverSearchResult {
     name: string;
     description: string | null;
     driver_group: string | null;
+    driver_chain: string | null;
 }
 
 async function readError(response: Response): Promise<string> {

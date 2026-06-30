@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { searchDrivers, type DriverSearchResult } from '../app/api/drivers';
+import { listPackages, getPackage, type PackageSummary, type PackageDriverItem } from '../app/api/packages';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,337 +9,232 @@ export interface Driver {
     driver: string;
     driver_group: string;
     description?: string | null;
+    driver_chain?: string | null;
 }
+
+export type ChainPartType = 'driver' | 'precondition';
 
 export interface ChainPart {
-    chain_part: string;
+    causal_chain_id?: number;
+    chain_part: ChainPartType;
     drivers: Driver[];
-    precondition?: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────────
 
-export const DEFAULT_DRIVER_OPTIONS: Driver[] = [
-    { driver_group: 'Climate',     driver: 'Increased temperature' },
-    { driver_group: 'Climate',     driver: 'Decreased rainfall' },
-    { driver_group: 'Disturbance', driver: 'Fire frequency increase' },
-    { driver_group: 'Disturbance', driver: 'Severe fire event' },
-    { driver_group: 'Biotic',      driver: 'Invasive species pressure' },
-    { driver_group: 'Management',  driver: 'Grazing pressure change' },
-    { driver_group: 'Hydrology',   driver: 'Changed inundation regime' },
-];
-
-export const CHAIN_PART_OPTIONS = [
-    'trigger',
-    'disturbance',
-    'pressure',
-    'management response',
-    'ecosystem response',
-];
-
-// ─── Driver utilities ─────────────────────────────────────────────────────────
-
-export function driverLabel(driver: Driver): string {
-    return `${driver.driver_group} - ${driver.driver}`;
+function classify(d: Driver): ChainPartType {
+    return (d.driver_chain ?? '').toLowerCase() === 'precondition' ? 'precondition' : 'driver';
 }
 
-export function uniqueDrivers(drivers: Driver[]): Driver[] {
-    const seen = new Set<string>();
-    return drivers.filter((driver) => {
-        const key = `${driver.driver_group}:::${driver.driver}`.toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-}
-
-export function fuzzyScore(query: string, label: string): number {
-    const q = query.trim().toLowerCase();
-    const value = label.toLowerCase();
-
-    if (!q) return 1;
-    if (value.includes(q)) return 100 - value.indexOf(q);
-
-    let cursor = 0;
-    let score = 0;
-    for (const char of q) {
-        const found = value.indexOf(char, cursor);
-        if (found === -1) return 0;
-        score += 3;
-        cursor = found + 1;
+// Flatten the chain parts to a single, de-duplicated driver list.
+function flatten(value: ChainPart[]): Driver[] {
+    const seen = new Set<number>();
+    const out: Driver[] = [];
+    for (const part of value) {
+        for (const d of part.drivers ?? []) {
+            if (d.driver_id != null) {
+                if (seen.has(d.driver_id)) continue;
+                seen.add(d.driver_id);
+            }
+            out.push(d);
+        }
     }
-    return score;
+    return out;
 }
 
-export function parseCustomDriver(raw: string): Driver | null {
-    const value = raw.trim();
-    if (!value) return null;
-    const [group, ...rest] = value.includes(':') ? value.split(':') : ['Custom', value];
-    const name = rest.join(':').trim();
-    return name ? { driver_group: group.trim() || 'Custom', driver: name } : null;
+// Re-group a flat driver list into the two chain parts by each driver's type.
+function toChainParts(drivers: Driver[]): ChainPart[] {
+    const out: ChainPart[] = [];
+    const driverPart = drivers.filter((d) => classify(d) === 'driver');
+    const precPart = drivers.filter((d) => classify(d) === 'precondition');
+    if (driverPart.length) out.push({ chain_part: 'driver', drivers: driverPart });
+    if (precPart.length) out.push({ chain_part: 'precondition', drivers: precPart });
+    return out;
 }
 
-function driverFromSearchResult(result: DriverSearchResult): Driver {
+function driverFromSearch(r: DriverSearchResult): Driver {
     return {
-        driver_id: result.id,
-        driver: result.name,
-        driver_group: result.driver_group?.trim() || 'Uncategorised',
-        description: result.description,
+        driver_id: r.id,
+        driver: r.name,
+        driver_group: r.driver_group?.trim() || 'Uncategorised',
+        description: r.description,
+        driver_chain: r.driver_chain,
+    };
+}
+
+function driverFromPackageItem(item: PackageDriverItem): Driver {
+    return {
+        driver_id: item.driver_id,
+        driver: item.driver_EM_label || `Driver ${item.driver_id}`,
+        driver_group: item.driver_class || 'Uncategorised',
+        description: item.driver_description,
+        driver_chain: item.driver_chain,
     };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface CausalChainEditorProps {
-    causalChain: ChainPart[];
-    driverOptions: Driver[];
-    onRemoveDriver: (partIndex: number, driver: Driver) => void;
-    onAddDriver: (partIndex: number, driver: Driver) => void;
-    onAddChainPart: (name: string) => void;
-    onUpdatePrecondition: (partIndex: number, value: string) => void;
+interface Props {
+    value: ChainPart[];
+    onChange: (next: ChainPart[]) => void;
 }
 
-export function CausalChainEditor({
-    causalChain,
-    driverOptions,
-    onRemoveDriver,
-    onAddDriver,
-    onAddChainPart,
-    onUpdatePrecondition,
-}: CausalChainEditorProps) {
-    const [searchByPart, setSearchByPart] = useState<Record<number, string>>({});
-    const [newChainPart, setNewChainPart] = useState(CHAIN_PART_OPTIONS[0]);
-    const [remoteDriversByPart, setRemoteDriversByPart] = useState<Record<number, Driver[]>>({});
-    const [loadingByPart, setLoadingByPart] = useState<Record<number, boolean>>({});
+export function CausalChainEditor({ value, onChange }: Props) {
+    const drivers = flatten(value);
+    const driverItems = drivers.filter((d) => classify(d) === 'driver');
+    const preconditionItems = drivers.filter((d) => classify(d) === 'precondition');
+    const existingIds = new Set(drivers.map((d) => d.driver_id));
+
+    const emit = (next: Driver[]) => onChange(toChainParts(next));
+    const addDriver = (d: Driver) => {
+        if (d.driver_id != null && existingIds.has(d.driver_id)) return;
+        emit([...drivers, d]);
+    };
+    const addMany = (toAdd: Driver[]) => {
+        const fresh = toAdd.filter((d) => d.driver_id == null || !existingIds.has(d.driver_id));
+        if (fresh.length) emit([...drivers, ...fresh]);
+    };
+    const removeDriver = (driverId?: number) => emit(drivers.filter((d) => d.driver_id !== driverId));
+
+    // Driver search
+    const [driverQuery, setDriverQuery] = useState('');
+    const [driverResults, setDriverResults] = useState<Driver[]>([]);
+    const [driverLoading, setDriverLoading] = useState(false);
 
     useEffect(() => {
-        const searchableEntries = Object.entries(searchByPart)
-            .map(([partIndex, query]) => [Number(partIndex), query.trim()] as const)
-            .filter(([, query]) => query.length >= 2);
-        const activeIndexes = new Set(searchableEntries.map(([partIndex]) => partIndex));
-
-        setRemoteDriversByPart((prev) =>
-            Object.fromEntries(
-                Object.entries(prev).filter(([partIndex]) => activeIndexes.has(Number(partIndex))),
-            ),
-        );
-
-        if (searchableEntries.length === 0) {
-            setLoadingByPart({});
-            return;
-        }
-
+        const q = driverQuery.trim();
+        if (q.length < 1) { setDriverResults([]); return; }
         const controller = new AbortController();
-        const timer = window.setTimeout(() => {
-            searchableEntries.forEach(([partIndex, query]) => {
-                setLoadingByPart((prev) => ({ ...prev, [partIndex]: true }));
-                searchDrivers(query, { limit: 12, signal: controller.signal })
-                    .then((results) => {
-                        setRemoteDriversByPart((prev) => ({
-                            ...prev,
-                            [partIndex]: results.map(driverFromSearchResult),
-                        }));
-                    })
-                    .catch((error: unknown) => {
-                        if (error instanceof DOMException && error.name === 'AbortError') return;
-                        setRemoteDriversByPart((prev) => ({ ...prev, [partIndex]: [] }));
-                    })
-                    .finally(() => {
-                        if (!controller.signal.aborted) {
-                            setLoadingByPart((prev) => ({ ...prev, [partIndex]: false }));
-                        }
-                    });
-            });
+        setDriverLoading(true);
+        const t = window.setTimeout(() => {
+            searchDrivers(q, { limit: 10, signal: controller.signal })
+                .then((rows) => setDriverResults(rows.map(driverFromSearch)))
+                .catch((e) => { if (!(e instanceof DOMException && e.name === 'AbortError')) setDriverResults([]); })
+                .finally(() => { if (!controller.signal.aborted) setDriverLoading(false); });
         }, 250);
+        return () => { window.clearTimeout(t); controller.abort(); };
+    }, [driverQuery]);
 
-        return () => {
-            window.clearTimeout(timer);
-            controller.abort();
-        };
-    }, [searchByPart]);
+    // Package search
+    const [packageQuery, setPackageQuery] = useState('');
+    const [packageResults, setPackageResults] = useState<PackageSummary[]>([]);
+    const [packageLoading, setPackageLoading] = useState(false);
 
-    const getSuggestions = (partIndex: number, query: string): Driver[] => {
-        const existing = new Set(
-            (causalChain[partIndex]?.drivers ?? []).map((d) => driverLabel(d).toLowerCase()),
-        );
-        const available = uniqueDrivers([
-            ...(remoteDriversByPart[partIndex] ?? []),
-            ...driverOptions,
-        ]);
-        return available
-            .map((driver) => ({ driver, score: fuzzyScore(query, driverLabel(driver)) }))
-            .filter(({ driver, score }) => score > 0 && !existing.has(driverLabel(driver).toLowerCase()))
-            .sort((a, b) => b.score - a.score || driverLabel(a.driver).localeCompare(driverLabel(b.driver)))
-            .slice(0, 6)
-            .map(({ driver }) => driver);
+    useEffect(() => {
+        const q = packageQuery.trim();
+        if (q.length < 1) { setPackageResults([]); return; }
+        let cancelled = false;
+        setPackageLoading(true);
+        const t = window.setTimeout(() => {
+            listPackages(q, 10)
+                .then((rows) => { if (!cancelled) setPackageResults(rows); })
+                .catch(() => { if (!cancelled) setPackageResults([]); })
+                .finally(() => { if (!cancelled) setPackageLoading(false); });
+        }, 250);
+        return () => { cancelled = true; window.clearTimeout(t); };
+    }, [packageQuery]);
+
+    const addPackage = async (pkg: PackageSummary) => {
+        setPackageQuery('');
+        setPackageResults([]);
+        try {
+            const full = pkg.drivers ? pkg : await getPackage(pkg.id);
+            addMany((full.drivers ?? []).map(driverFromPackageItem));
+        } catch {
+            // ignore — package failed to load
+        }
     };
 
+    const renderBucket = (title: string, items: Driver[]) => (
+        <div style={bucket}>
+            <div style={bucketHeader}>
+                <span>{title}</span>
+                <span style={countChip}>{items.length}</span>
+            </div>
+            {items.length === 0 ? (
+                <div style={emptyRow}>None yet.</div>
+            ) : (
+                items.map((d) => (
+                    <div key={d.driver_id ?? d.driver} style={driverRow}>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={driverName}>{d.driver}</span>
+                            {d.description && <span style={driverDesc}>{d.description}</span>}
+                        </span>
+                        <span style={groupTag}>{d.driver_group}</span>
+                        <button type="button" style={removeBtn} onClick={() => removeDriver(d.driver_id)} aria-label="Remove">✕</button>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+
     return (
-        <div className="causal-chain-container">
-            <div className="causal-chain-heading">
-                <h4 className="causal-chain-title">Causal Chain Drivers</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Add controls */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ position: 'relative' }}>
+                    <label style={label}>Add a driver</label>
+                    <input style={input} value={driverQuery} onChange={(e) => setDriverQuery(e.target.value)} placeholder="Search drivers…" />
+                    {driverQuery.trim() && (
+                        <div style={dropdown}>
+                            {driverLoading ? <div style={statusRow}>Searching…</div>
+                                : driverResults.length === 0 ? <div style={statusRow}>No matches</div>
+                                    : driverResults.map((d) => (
+                                        <button
+                                            key={d.driver_id}
+                                            type="button"
+                                            disabled={d.driver_id != null && existingIds.has(d.driver_id)}
+                                            style={{ ...resultRow, opacity: d.driver_id != null && existingIds.has(d.driver_id) ? 0.5 : 1 }}
+                                            onClick={() => { addDriver(d); setDriverQuery(''); }}
+                                        >
+                                            <span style={{ minWidth: 0 }}>
+                                                <span style={driverName}>{d.driver}</span>
+                                                {d.description && <span style={driverDesc}>{d.description}</span>}
+                                            </span>
+                                            <small style={{ color: '#667085', flexShrink: 0 }}>{classify(d)}</small>
+                                        </button>
+                                    ))}
+                        </div>
+                    )}
+                </div>
 
-                <div className="add-chain-part">
-                    <select
-                        value={newChainPart}
-                        onChange={(event) => setNewChainPart(event.target.value)}
-                        className="add-chain-part-select"
-                    >
-                        {CHAIN_PART_OPTIONS.map((part) => (
-                            <option key={part} value={part}>
-                                {part}
-                            </option>
-                        ))}
-                    </select>
-
-                    <button
-                        type="button"
-                        className="btn btn-small btn-primary"
-                        onClick={() => onAddChainPart(newChainPart)}
-                    >
-                        Add Part
-                    </button>
+                <div style={{ position: 'relative' }}>
+                    <label style={label}>Add a package</label>
+                    <input style={input} value={packageQuery} onChange={(e) => setPackageQuery(e.target.value)} placeholder="Search packages…" />
+                    {packageQuery.trim() && (
+                        <div style={dropdown}>
+                            {packageLoading ? <div style={statusRow}>Searching…</div>
+                                : packageResults.length === 0 ? <div style={statusRow}>No matches</div>
+                                    : packageResults.map((p) => (
+                                        <button key={p.id} type="button" style={resultRow} onClick={() => void addPackage(p)}>
+                                            <span style={driverName}>{p.package_description}</span>
+                                            <small style={{ color: '#667085', flexShrink: 0 }}>{p.driver_count ?? 0} drivers</small>
+                                        </button>
+                                    ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {causalChain.length === 0 && (
-                <div className="empty-causal-chain">
-                    <p className="empty-causal-chain-message">
-                        No causal chain defined. Add a chain part first.
-                    </p>
-                </div>
-            )}
-
-            {causalChain.map((chainPart, index) => {
-                if (!chainPart.chain_part) return null;
-
-                const groupedDrivers = chainPart.drivers.reduce(
-                    (groups, driver) => {
-                        const group = driver.driver_group || 'Custom';
-                        groups[group] = groups[group] ? [...groups[group], driver] : [driver];
-                        return groups;
-                    },
-                    {} as Record<string, Driver[]>,
-                );
-
-                const query = searchByPart[index] ?? '';
-                const suggestions = getSuggestions(index, query);
-                const customDriver = parseCustomDriver(query);
-
-                return (
-                    <div key={`${chainPart.chain_part}-${index}`} className="chain-part">
-                        <div className="chain-part-header">
-                            <span>{chainPart.chain_part}</span>
-                            <span className="chain-part-counter">{chainPart.drivers.length}</span>
-                        </div>
-
-                        <div className="chain-part-content">
-                            <div className="driver-search-row">
-                                <input
-                                    value={query}
-                                    onChange={(event) =>
-                                        setSearchByPart((prev) => ({
-                                            ...prev,
-                                            [index]: event.target.value,
-                                        }))
-                                    }
-                                    placeholder="Search or type Group: driver"
-                                    className="driver-search-input"
-                                />
-
-                                <button
-                                    type="button"
-                                    className="btn btn-small btn-primary"
-                                    onClick={() => {
-                                        const driver = suggestions[0] ?? customDriver;
-                                        if (!driver) return;
-                                        onAddDriver(index, driver);
-                                        setSearchByPart((prev) => ({ ...prev, [index]: '' }));
-                                    }}
-                                >
-                                    Add
-                                </button>
-                            </div>
-
-                            {query && suggestions.length > 0 && (
-                                <div className="driver-suggestions">
-                                    {suggestions.map((driver) => (
-                                        <button
-                                            key={driverLabel(driver)}
-                                            type="button"
-                                            className="driver-suggestion"
-                                            onClick={() => {
-                                                onAddDriver(index, driver);
-                                                setSearchByPart((prev) => ({ ...prev, [index]: '' }));
-                                            }}
-                                        >
-                                            <span>{driver.driver}</span>
-                                            <small>{driver.driver_group}</small>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {query && suggestions.length === 0 && loadingByPart[index] && (
-                                <div className="driver-suggestions">
-                                    <div className="driver-suggestion-status">Searching drivers...</div>
-                                </div>
-                            )}
-
-                            {Object.entries(groupedDrivers).map(([groupName, drivers]) => (
-                                <div key={groupName} className="driver-group">
-                                    <div className="driver-group-content">
-                                        <div className="driver-group-name">{groupName}</div>
-                                        <ul className="driver-list">
-                                            {drivers.map((driver) => (
-                                                <li key={driverLabel(driver)} className="driver-item">
-                                                    <span className="driver-name">{driver.driver}</span>
-                                                    <button
-                                                        type="button"
-                                                        className="driver-delete"
-                                                        aria-label="Remove driver"
-                                                        title="Remove"
-                                                        onClick={() => onRemoveDriver(index, driver)}
-                                                    >
-                                                        x
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {chainPart.drivers.length === 0 && (
-                                <div className="empty-causal-chain inline">
-                                    <p className="empty-causal-chain-message">
-                                        No drivers in this chain part.
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="precondition-section">
-                                <label
-                                    className="precondition-label"
-                                    htmlFor={`precondition-${index}`}
-                                >
-                                    Precondition
-                                </label>
-                                <textarea
-                                    id={`precondition-${index}`}
-                                    className="precondition-input"
-                                    value={chainPart.precondition ?? ''}
-                                    onChange={(event) =>
-                                        onUpdatePrecondition(index, event.target.value)
-                                    }
-                                    placeholder="Example: high fuel load, dry season, recent drought..."
-                                    rows={2}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                );
-            })}
+            {/* Buckets */}
+            {renderBucket('Drivers', driverItems)}
+            {renderBucket('Preconditions', preconditionItems)}
         </div>
     );
 }
+
+/* ── styles ── */
+const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 4 };
+const input: React.CSSProperties = { padding: '8px 10px', border: '1px solid #d0d5dd', borderRadius: 6, fontSize: 13, width: '100%', boxSizing: 'border-box' };
+const dropdown: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, boxShadow: '0 6px 18px rgba(16,24,40,0.14)', zIndex: 20, maxHeight: 220, overflowY: 'auto' };
+const resultRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%', padding: '8px 10px', border: 'none', background: '#fff', cursor: 'pointer', textAlign: 'left', fontSize: 13 };
+const statusRow: React.CSSProperties = { padding: '8px 10px', color: '#667085', fontSize: 12 };
+const bucket: React.CSSProperties = { border: '1px solid #eaecf0', borderRadius: 8, overflow: 'hidden' };
+const bucketHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#f9fafb', borderBottom: '1px solid #eaecf0', fontWeight: 600, fontSize: 13, color: '#344054' };
+const countChip: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#175cd3', background: '#eff8ff', padding: '1px 8px', borderRadius: 12 };
+const emptyRow: React.CSSProperties = { padding: 12, color: '#667085', fontSize: 12 };
+const driverRow: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', borderBottom: '1px solid #f2f4f7', fontSize: 13 };
+const driverName: React.CSSProperties = { display: 'block', fontWeight: 500, color: '#101828' };
+const driverDesc: React.CSSProperties = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', color: '#667085', fontSize: 12, lineHeight: 1.35 };
+const groupTag: React.CSSProperties = { color: '#667085', fontSize: 12, flexShrink: 0 };
+const removeBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#b42318', cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0 };

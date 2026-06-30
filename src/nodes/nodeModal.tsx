@@ -318,9 +318,9 @@ export function NodeModal({
 
                         <div className="node-modal-grid three">
                             <label className="node-field">
-                                <span>Biome</span>
+                                <span>Ecosystem</span>
                                 <select value={biome} onChange={handleBiomeChange}>
-                                    <option value="">Select a biome</option>
+                                    <option value="">Select an ecosystem</option>
                                     {BIOME_ORDER.map((b) => (
                                         <option key={b} value={b}>
                                             {BIOMES[b].label}
@@ -337,7 +337,7 @@ export function NodeModal({
                                     disabled={!biome}
                                 >
                                     <option value="">
-                                        {biome ? 'Select a primary layer' : 'Select a biome first'}
+                                        {biome ? 'Select a primary layer' : 'Select an ecosystem first'}
                                     </option>
                                     {primaryGroupOptions.map((opt) => (
                                         <option key={opt.key} value={opt.key}>
@@ -348,7 +348,7 @@ export function NodeModal({
                             </label>
 
                             <label className="node-field">
-                                <span>Template</span>
+                                <span>Secondary Layer</span>
                                 <select
                                     value={templateId}
                                     onChange={handleTemplateChange}

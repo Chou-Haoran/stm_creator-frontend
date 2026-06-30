@@ -139,6 +139,7 @@ export default function CustomEdge({
 
     // Get transition delta value for styling
     const transitionDelta = (data?.transitionDelta as number) ?? 0;
+    const transitionId = data?.transitionId as number | undefined;
     const commentCount = (data?.commentCount as number) ?? 0;
     const onCommentBubbleClick = data?.onCommentBubbleClick as ((edgeId: string) => void) | undefined;
     const isNegativeDelta = transitionDelta < 0;
@@ -199,32 +200,33 @@ export default function CustomEdge({
                 markerEnd={`url(#arrow-${id})`} // This is the key change - explicitly set markerEnd
             />
 
-            {data && transitionDelta !== 0 && (
+            {data && transitionId != null && (
                 <foreignObject
-                    width={70}
+                    width={104}
                     height={30}
-                    x={labelX - 35}
+                    x={labelX - 52}
                     y={labelY - 15 + labelOffset}
                     className="edgebutton-foreignobject"
                     requiredExtensions="http://www.w3.org/1999/xhtml"
                 >
                     <div
                         style={{
-                            background: isNegativeDelta ? '#ffebee' : '#e8f5e9',
-                            color: isNegativeDelta ? '#c62828' : '#2e7d32',
-                            padding: '3px 5px',
+                            background: isZeroDelta ? '#f3f4f6' : isNegativeDelta ? '#ffebee' : '#e8f5e9',
+                            color: isZeroDelta ? '#4b5563' : isNegativeDelta ? '#c62828' : '#2e7d32',
+                            padding: '3px 6px',
                             borderRadius: '4px',
                             fontSize: '10px',
                             fontWeight: 'bold',
                             display: 'inline-block',
-                            border: `1px solid ${isNegativeDelta ? '#ffcdd2' : '#c8e6c9'}`,
+                            border: `1px solid ${isZeroDelta ? '#e5e7eb' : isNegativeDelta ? '#ffcdd2' : '#c8e6c9'}`,
                             textAlign: 'center',
                             width: 'fit-content',
                             cursor: 'pointer',
-                            boxShadow: selected ? '0 0 4px #3b82f6' : 'none'
+                            boxShadow: selected ? '0 0 4px #3b82f6' : 'none',
+                            whiteSpace: 'nowrap',
                         }}
                     >
-                        Δ {transitionDelta.toFixed(2)}
+                        {transitionId} · Δ {transitionDelta.toFixed(2)}
                     </div>
                 </foreignObject>
             )}

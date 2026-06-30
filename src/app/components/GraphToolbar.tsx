@@ -26,6 +26,11 @@ interface GraphToolbarProps {
   readonly onRelayout: () => void;
   readonly onApplyLayout?: (strategy: LayoutStrategy) => void | Promise<void>;
   readonly onToggleSelfTransitions: () => void;
+  readonly snapToGrid: boolean;
+  readonly onToggleSnapToGrid: () => void;
+  readonly snapGridSize: number;
+  readonly onSnapGridSizeChange: (size: number) => void;
+  readonly onSnapAllNodes: () => void;
   readonly edgeCreationMode: boolean;
   readonly isSaving: boolean;
   readonly showSelfTransitions: boolean;
@@ -64,6 +69,11 @@ export function GraphToolbar({
   onExportEKS,
   onExportPNG,
   onToggleSelfTransitions,
+  snapToGrid,
+  onToggleSnapToGrid,
+  snapGridSize,
+  onSnapGridSizeChange,
+  onSnapAllNodes,
   edgeCreationMode,
   isSaving,
   showSelfTransitions,
@@ -168,6 +178,18 @@ export function GraphToolbar({
         isOpen={openSection === 'model'}
         onToggle={() => toggleSection('model')}
       >
+        {onOpenModelList && (
+          <button
+            type="button"
+            data-tour="open-model"
+            onClick={() => closeAfter(onOpenModelList)}
+            className="tb-btn"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4.5h4l1.4 1.8H14v6.2H2z"/></svg>
+            Open Model
+          </button>
+        )}
+
         <button
           type="button"
           data-tour="save-model"
@@ -305,6 +327,44 @@ export function GraphToolbar({
           className={`tb-btn ${showSelfTransitions ? 'active' : ''}`}
         >
           {showSelfTransitions ? 'Hide Self-Trans' : 'Show Self-Trans'}
+        </button>
+
+        <div className="tb-dropdown-divider" />
+
+        <button
+          type="button"
+          onClick={onToggleSnapToGrid}
+          className={`tb-btn ${snapToGrid ? 'active' : ''}`}
+        >
+          {snapToGrid ? 'Snap to Grid: On' : 'Snap to Grid: Off'}
+        </button>
+
+        <label
+          className="tb-btn"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'default' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span style={{ flex: 1, textAlign: 'left' }}>Grid size</span>
+          <input
+            type="number"
+            min={5}
+            max={200}
+            step={5}
+            value={snapGridSize}
+            onChange={(e) => onSnapGridSizeChange(Number(e.target.value))}
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 56 }}
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => closeAfter(onSnapAllNodes)}
+          className="tb-btn"
+          disabled={editDisabled}
+          title="Round every node's position to the nearest grid step"
+        >
+          Snap All Nodes Now
         </button>
       </ToolbarDropdown>
 

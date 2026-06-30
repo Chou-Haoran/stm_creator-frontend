@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { API_BASE, apiFetch } from '../../app/auth/api';
 import { getAssignedModels, type ModelSummary } from '../api/models';
-import { MODEL_ROLES, type GlobalRole } from '../../constants/roles';
+import { type GlobalRole } from '../../constants/roles';
 import { isAdmin } from '../../utils/permissions';
 
 interface Props {
@@ -62,7 +62,7 @@ export function ModelListModal({ isOpen, onClose, userRole }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allModels, setAllModels] = useState<ModelSummary[]>([]);
-  const [ownedModels, setOwnedModels] = useState<ModelSummary[]>([]);
+  const [accessibleModels, setAccessibleModels] = useState<ModelSummary[]>([]);
   const userIsAdmin = isAdmin(userRole ?? undefined);
 
   useEffect(() => {
@@ -73,11 +73,10 @@ export function ModelListModal({ isOpen, onClose, userRole }: Props) {
       setLoading(true);
       setError(null);
       setAllModels([]);
-      setOwnedModels([]);
+      setAccessibleModels([]);
 
       try {
         const assignedModels = await getAssignedModels();
-        const ownerModels = assignedModels.filter((model) => model.model_role === MODEL_ROLES.OWNER);
 
         let availableModels: ModelSummary[] = [];
         if (userIsAdmin) {
@@ -95,7 +94,7 @@ export function ModelListModal({ isOpen, onClose, userRole }: Props) {
 
         if (!cancelled) {
           setAllModels(availableModels);
-          setOwnedModels(ownerModels);
+          setAccessibleModels(assignedModels);
         }
       } catch (e) {
         if (!cancelled) setError((e as Error).message || 'Failed to fetch models');
@@ -192,12 +191,10 @@ export function ModelListModal({ isOpen, onClose, userRole }: Props) {
               </>
             )}
             {renderSection(
-              'Models You Own',
-              userIsAdmin
-                ? 'Models where your model-level role is owner.'
-                : 'Models where you are the owner.',
-              ownedModels,
-              'No owned models found.',
+              'Models you can open',
+              'Models you have permission to access (your role is shown on each).',
+              accessibleModels,
+              'No models available to open.',
             )}
           </div>
         )}

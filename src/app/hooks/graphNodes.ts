@@ -222,6 +222,30 @@ export function createNodeHandlers({
         });
     };
 
+    // Begin creating a transition with `nodeId` pre-selected as the source.
+    // The next node click completes it via handleNodeClick's edge-creation path.
+    const beginTransitionFromNode = (nodeId: string) => {
+        setEdgeCreationMode(true);
+        setStartNodeId(nodeId);
+        setNodes((prev) => selectNodeForEdgeCreation(prev, nodeId));
+    };
+
+    // Round every node's position to the nearest `size` grid step. This is a
+    // one-shot reposition; the new positions persist on the next model save
+    // (saveModel reads positions from the live nodes).
+    const snapAllNodesToGrid = (size: number) => {
+        const grid = Math.max(1, Math.round(size));
+        setNodes((prev) =>
+            prev.map((node) => ({
+                ...node,
+                position: {
+                    x: Math.round(node.position.x / grid) * grid,
+                    y: Math.round(node.position.y / grid) * grid,
+                },
+            })),
+        );
+    };
+
     const openAddNodeModal = () => {
         setCurrentNodeId(null);
         setInitialNodeValues(undefined);
@@ -239,6 +263,8 @@ export function createNodeHandlers({
         handleSaveNode,
         handleDuplicateState,
         toggleEdgeCreationMode,
+        beginTransitionFromNode,
+        snapAllNodesToGrid,
         openAddNodeModal,
         closeNodeModal,
     };

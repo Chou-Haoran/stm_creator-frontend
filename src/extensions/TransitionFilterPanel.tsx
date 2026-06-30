@@ -1,5 +1,5 @@
 // src/extensions/TransitionFilterPanel.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ModelData } from '../utils/stateTransition';
 import type { DeltaFilterOption } from '../app/types';
 
@@ -13,16 +13,6 @@ type Props = {
   /** When true, renders inline for sidebar (no Panel wrapper) */
   inSidebar?: boolean;
 };
-
-function isTruthy(v: unknown): boolean {
-  if (typeof v === 'boolean') return v;
-  if (typeof v === 'number') return v !== 0;
-  if (typeof v === 'string') {
-    const s = v.trim().toLowerCase();
-    return s === '1' || s === 'true' || s === 'yes';
-  }
-  return false;
-}
 
 export function TransitionFilterPanel({
   modelData,

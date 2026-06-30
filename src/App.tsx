@@ -120,6 +120,44 @@ function GraphEditor() {
       // ignore quota / private-mode failures — the toggle still works
     }
   }, [legendCollapsed]);
+  // Snap-to-grid: whether dragging snaps, and the grid step (px). Persisted so
+  // the choice sticks across sessions; defaults to on / 20px (prior behaviour).
+  const [snapToGridEnabled, setSnapToGridEnabled] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('stmCreator.snapToGrid');
+      return v === null ? true : v === '1';
+    } catch {
+      return true;
+    }
+  });
+  const [snapGridSize, setSnapGridSize] = useState<number>(() => {
+    try {
+      const v = Number(localStorage.getItem('stmCreator.snapGridSize'));
+      return Number.isFinite(v) && v > 0 ? v : 20;
+    } catch {
+      return 20;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('stmCreator.snapToGrid', snapToGridEnabled ? '1' : '0');
+    } catch {
+      // ignore quota / private-mode failures
+    }
+  }, [snapToGridEnabled]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('stmCreator.snapGridSize', String(snapGridSize));
+    } catch {
+      // ignore quota / private-mode failures
+    }
+  }, [snapGridSize]);
+  const handleToggleSnapToGrid = () => setSnapToGridEnabled((v) => !v);
+  const handleSnapGridSizeChange = (n: number) => {
+    if (Number.isFinite(n) && n > 0) {
+      setSnapGridSize(Math.min(200, Math.max(5, Math.round(n))));
+    }
+  };
   const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(() => {
     const token = authStorage.getToken();
     const user = authStorage.getUser();
@@ -307,6 +345,8 @@ function GraphEditor() {
     handleReLayout,
     applyLayout,
     toggleEdgeCreationMode,
+    beginTransitionFromNode,
+    snapAllNodesToGrid,
     loadExistingEdges,
     toggleSelfTransitions,
     toggleDeltaFilter,
@@ -463,6 +503,13 @@ function GraphEditor() {
   };
 
   const closeContextMenu = () => setContextMenu(null);
+
+  const handleContextMenuAddTransition = () => {
+    if (!contextMenu) return;
+    if (contextMenu.target === 'state' && contextMenu.nodeId) {
+      beginTransitionFromNode(contextMenu.nodeId);
+    }
+  };
 
   const handleContextMenuEdit = () => {
     if (!contextMenu) return;
@@ -1050,6 +1097,11 @@ function GraphEditor() {
           onExportPNG={handleExportPng}
           onRelayout={handleReLayout}
           onToggleSelfTransitions={toggleSelfTransitions}
+          snapToGrid={snapToGridEnabled}
+          onToggleSnapToGrid={handleToggleSnapToGrid}
+          snapGridSize={snapGridSize}
+          onSnapGridSizeChange={handleSnapGridSizeChange}
+          onSnapAllNodes={() => snapAllNodesToGrid(snapGridSize)}
           onOpenVersionCompare={() => setIsVersionComparisonOpen(true)}
           edgeCreationMode={edgeCreationMode}
           isSaving={isSaving}
@@ -1259,8 +1311,9 @@ function GraphEditor() {
             zoomOnDoubleClick={false}
             panOnDrag
             panOnScroll
-            snapToGrid
-            snapGrid={[20, 20]}
+            snapToGrid={snapToGridEnabled}
+            snapGrid={[snapGridSize, snapGridSize]}
+            onInit={() => loadExistingEdges()}
           >
             <Background />
             <MiniMap />
@@ -1321,6 +1374,7 @@ function GraphEditor() {
                   const tgtNode = nodesForRender.find((n) => n.id === e.target);
                   return {
                     id: e.id,
+                    transitionId: e.data?.transitionId as number | undefined,
                     sourceLabel: srcNode?.data.label || e.source,
                     targetLabel: tgtNode?.data.label || e.target,
                   };
@@ -1415,6 +1469,7 @@ function GraphEditor() {
         onClose={closeContextMenu}
         onEdit={handleContextMenuEdit}
         onDelete={handleContextMenuDelete}
+        onAddTransition={handleContextMenuAddTransition}
       />
     </div>
   );

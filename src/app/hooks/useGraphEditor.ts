@@ -327,6 +327,18 @@ export function useGraphEditor(options: UseGraphEditorOptions = {}): UseGraphEdi
             }
             nodeHandlers.toggleEdgeCreationMode();
         },
+        beginTransitionFromNode: (nodeId) => {
+            if (blockIfReadOnly()) {
+                return;
+            }
+            nodeHandlers.beginTransitionFromNode(nodeId);
+        },
+        snapAllNodesToGrid: (size) => {
+            if (blockIfReadOnly()) {
+                return;
+            }
+            nodeHandlers.snapAllNodesToGrid(size);
+        },
         loadExistingEdges: filterActions.loadExistingEdges,
         toggleSelfTransitions: filterActions.toggleSelfTransitions,
         toggleDeltaFilter: filterActions.toggleDeltaFilter,

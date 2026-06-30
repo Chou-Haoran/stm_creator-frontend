@@ -56,6 +56,8 @@ export interface UseGraphEditorResult {
     handleReLayout: () => void;
     applyLayout?: (strategy: LayoutStrategy) => Promise<void> | void;
     toggleEdgeCreationMode: () => void;
+    beginTransitionFromNode: (nodeId: string) => void;
+    snapAllNodesToGrid: (size: number) => void;
     loadExistingEdges: () => void;
     toggleSelfTransitions: () => void;
     toggleDeltaFilter: (option: DeltaFilterOption) => void;

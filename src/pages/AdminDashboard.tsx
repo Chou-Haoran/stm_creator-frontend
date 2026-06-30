@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { API_BASE, apiFetch } from '../app/auth/api';
 import { StatsCard } from '../components/admin/StatsCard';
 import { UsersTable, type User } from '../components/admin/UsersTable';
+import { DriversManager } from '../components/admin/DriversManager';
+import { PackagesManager } from '../components/admin/PackagesManager';
 import styles from './AdminDashboard.module.css';
 
 interface AuditLog {
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState<'dashboard' | 'users' | 'sessions'>('dashboard');
+  const [activeNav, setActiveNav] = useState<'dashboard' | 'users' | 'sessions' | 'drivers' | 'packages'>('dashboard');
 
   const addToast = (type: Toast['type'], message: string) => {
     const id = ++_toastSeq;
@@ -189,6 +191,20 @@ export default function AdminDashboard() {
             <IconClock />
             Sessions
           </button>
+          <button
+            className={`${styles.navLink} ${activeNav === 'drivers' ? styles.navLinkActive : ''}`}
+            onClick={() => { setActiveNav('drivers'); scrollTo('section-drivers'); }}
+          >
+            <IconDatabase />
+            Drivers
+          </button>
+          <button
+            className={`${styles.navLink} ${activeNav === 'packages' ? styles.navLinkActive : ''}`}
+            onClick={() => { setActiveNav('packages'); scrollTo('section-packages'); }}
+          >
+            <IconPackage />
+            Packages
+          </button>
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -274,6 +290,18 @@ export default function AdminDashboard() {
             onRevokeSession={handleRevokeSession}
             onDeleteUser={handleDeleteUser}
           />
+        </section>
+
+        {/* ===== Drivers ===== */}
+        <section id="section-drivers" className={styles.section}>
+          <h2 className={styles.sectionTitle}>Driver Manager</h2>
+          <DriversManager />
+        </section>
+
+        {/* ===== Packages ===== */}
+        <section id="section-packages" className={styles.section}>
+          <h2 className={styles.sectionTitle}>Driver Package Manager</h2>
+          <PackagesManager />
         </section>
 
         {/* ===== Audit log ===== */}
@@ -365,6 +393,27 @@ function IconClock() {
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function IconPackage() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16.5 9.4 7.55 4.24" />
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <path d="M3.27 6.96 12 12.01l8.73-5.05" />
+      <path d="M12 22.08V12" />
+    </svg>
+  );
+}
+
+function IconDatabase() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      <path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6" />
     </svg>
   );
 }
